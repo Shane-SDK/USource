@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/USource/EditorResources/UI/base.uss?fileID=7433441132597879392&amp;guid=d0607104479312647adc0a86ede07d22&amp;type=3#base" />
+    <Style src="project://database/Assets/USource/EditorResources/UI/VMF/vmf.uss?fileID=7433441132597879392&amp;guid=38238b0bdb41fc94a840d632d7189dee&amp;type=3#vmf" />
+    <ui:VisualElement name="root" class="box-out" style="flex-grow: 1;">
+        <ui:Button text="Import VMF" parse-escape-sequences="true" display-tooltip-when-elided="true" name="import" class="box-out" />
+        <ui:Label tabindex="-1" text="This will import a VMF file as a GameObject. Specifically as a RealtimeCSG brush hierarchy, which is editable in a similar fashion as brushes in hammer are.&#10;&#10;Download RealtimeCSG here:&#10;https://realtimecsg.com/" parse-escape-sequences="true" display-tooltip-when-elided="true" style="white-space: normal;" />
+    </ui:VisualElement>
+</ui:UXML>

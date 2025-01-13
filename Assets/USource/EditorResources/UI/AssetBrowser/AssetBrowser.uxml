@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/USource/EditorResources/UI/base.uss?fileID=7433441132597879392&amp;guid=d0607104479312647adc0a86ede07d22&amp;type=3#base" />
+    <Style src="project://database/Assets/USource/EditorResources/UI/AssetBrowser/assetbrowser.uss?fileID=7433441132597879392&amp;guid=f21e6bf65a64f2642ae0a3ec577655e9&amp;type=3#assetbrowser" />
+    <ui:VisualElement name="root" class="box-out">
+        <ui:VisualElement name="content" class="box-in">
+            <ui:Label tabindex="-1" text="Assets Found: 10/10000" parse-escape-sequences="true" display-tooltip-when-elided="true" name="header" class="box-out" />
+            <ui:ListView focusable="true" selection-type="Multiple" show-foldout-header="false" binding-path="list" />
+        </ui:VisualElement>
+        <ui:VisualElement name="controls">
+            <ui:Button text="Import" parse-escape-sequences="true" display-tooltip-when-elided="true" name="import" class="box-out" />
+            <ui:TextField picking-mode="Ignore" name="filter" label="Filter" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

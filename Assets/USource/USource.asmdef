@@ -1,0 +1,20 @@
+{
+    "name": "USource",
+    "rootNamespace": "",
+    "references": [
+        "GUID:97a0897eb1d9f534499ad443f6b47d18",
+        "GUID:1bfd05862fc171a42ad1bdf3d5e5f741",
+        "GUID:d8b63aba1907145bea998dd612889d6b"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

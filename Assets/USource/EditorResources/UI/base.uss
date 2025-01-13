@@ -1,0 +1,53 @@
+.box-out {
+    background-color: rgb(94, 94, 94);
+    border-left-color: rgb(195, 195, 195);
+    border-right-color: rgb(0, 0, 0);
+    border-top-color: rgb(195, 195, 195);
+    border-bottom-color: rgb(0, 0, 0);
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+}
+
+.box-in {
+    background-color: rgb(48, 48, 48);
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-left-color: rgb(0, 0, 0);
+    border-right-color: rgb(173, 173, 173);
+    border-top-color: rgb(0, 0, 0);
+    border-bottom-color: rgb(173, 173, 173);
+}
+
+.unity-text-element {
+    -unity-font-definition: url('project://database/Assets/USource/EditorResources/fonts/tahoma%20SDF.asset?fileID=11400000&guid=28b91a4c782b38d4487ceffd15bbb16b&type=2#tahoma SDF');
+    color: rgb(255, 255, 255);
+    -unity-font-style: normal;
+}
+
+.box-out Button {
+    background-color: rgb(70, 70, 70);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+TextField #unity-text-input {
+    background-color: rgb(48, 48, 48);
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-left-color: rgb(0, 0, 0);
+    border-right-color: rgb(173, 173, 173);
+    border-top-color: rgb(0, 0, 0);
+    border-bottom-color: rgb(173, 173, 173);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}

@@ -1,0 +1,67 @@
+#provider {
+    flex-direction: row;
+}
+
+.entry:selected {
+    background-color: rgb(0, 75, 87);
+}
+
+.entry:hover {
+    background-color: rgb(109, 94, 40);
+}
+
+.entry-2n {
+    background-color: rgb(41, 41, 41);
+}
+
+.entry > * {
+    flex-shrink: 1;
+    flex-grow: 0;
+    flex-direction: column;
+}
+
+.entry {
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 0;
+}
+
+#content ListView {
+    flex-grow: 0;
+    flex-shrink: 1;
+    max-height: none;
+}
+
+.unity-list-view__size-field {
+    display: none;
+}
+
+#controls {
+    flex-direction: column;
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-top: 10px;
+    min-height: auto;
+    max-height: none;
+}
+
+#content {
+    flex-shrink: 1;
+    overflow: hidden;
+    flex-grow: 1;
+    max-height: none;
+}
+
+#root {
+    flex-direction: column;
+    padding-top: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    justify-content: space-between;
+    flex-grow: 0;
+    flex-shrink: 0;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+}

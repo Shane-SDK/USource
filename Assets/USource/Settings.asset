@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a11e981e984702247824da7568c698e4, type: 3}
+  m_Name: Settings
+  m_EditorClassIdentifier: 
+  sourceToUnityScale: 0.025
+  resourcePath: USource/Assets
+  textureImportFormat: 1
+  textureImporterPreset: {fileID: 2655988077585873504, guid: ccf8f824eb910b54980a567259ae0bb2,
+    type: 2}
+  gamePaths:
+  - D:/SteamLibrary/steamapps/common/GarrysMod/garrysmod
+  - D:/SteamLibrary/steamapps/common/Counter-Strike Source/cstrike
