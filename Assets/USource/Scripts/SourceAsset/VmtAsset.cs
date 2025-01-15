@@ -1,10 +1,8 @@
 ﻿using System.IO;
 using System.Linq;
 using System.Collections.Generic;
-#if UNITY_EDITOR
-#endif
 
-namespace USource
+namespace USource.SourceAsset
 {
     public struct VmtAsset : ISourceAsset
     {

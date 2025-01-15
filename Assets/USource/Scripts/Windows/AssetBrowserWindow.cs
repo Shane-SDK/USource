@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using USource.SourceAsset;
 
 namespace USource.Windows
 {

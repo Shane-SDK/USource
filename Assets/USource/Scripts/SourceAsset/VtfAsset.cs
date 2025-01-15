@@ -1,9 +1,7 @@
 ﻿using System.IO;
 using System.Collections.Generic;
-#if UNITY_EDITOR
-#endif
 
-namespace USource
+namespace USource.SourceAsset
 {
     public struct VtfAsset : ISourceAsset
     {
