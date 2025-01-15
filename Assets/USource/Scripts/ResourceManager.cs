@@ -3,12 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-using USource.Formats.Source.VBSP;
-using USource.Formats.Source.VTF;
-using USource.Formats.Source.MDL;
 using UnityEngine;
 using USource.Converters;
-using UnityEditor.VersionControl;
+using JetBrains.Annotations;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -45,6 +42,8 @@ namespace USource
         public static Settings settings;
         public static List<IResourceProvider> ResourceProviders { get { return resourceProviders; } }
         static List<IResourceProvider> resourceProviders = new List<IResourceProvider>();
+        public static IReadOnlyDictionary<Location, UnityEngine.Object> ObjectCache => objectCache;
+        static Dictionary<Location, UnityEngine.Object> objectCache = new();
         static ResourceManager()
         {
             settings = AssetDatabase.LoadAssetAtPath<Settings>(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:Settings", new[] { "Assets/USource" })[0]));
@@ -412,5 +411,50 @@ namespace USource
         {
             return $"Assets/USource/Assets/{sourcePath}";  // Path of the asset relative to project
         }
+        public static bool GetResourceData(IResourceProvider provider, Location location, out Stream stream)
+        {
+            stream = provider[location];
+            return stream != null;
+        }
+        public static bool CreateUnityObject(Location location, List<Location> dependencies, out UnityEngine.Object unityObject)
+        {
+            // go in reverse order
+            unityObject = null;
+
+            for (int i = dependencies.Count - 1; i >= 0; i--)
+            {
+                // check if object already exists in cache
+                // if not, create it
+                Location dependency = dependencies[i];
+                if (objectCache.TryGetValue(dependency, out unityObject))
+                {
+                    continue;
+                }
+                else if (TryFindResourceProvider(location, out IResourceProvider provider))
+                {
+                    // create object and store in cache
+                    Converter converter = Converter.FromLocation(location, provider, provider[location]);
+                    unityObject = converter.CreateAsset(default, true);
+                    if (unityObject != null)
+                    {
+                        objectCache[location] = unityObject;
+                    }
+                }
+            }
+
+            return unityObject != null;
+        }
+        //public static T GetSourceAsset<T>(Location location) where T : UnityEngine.Object
+        //{
+        //    // get converter
+
+        //}
+        //public static T GetConverter<T>(Location location) where T : Converter
+        //{
+        //    List<Location> dependencies = new(){ location };
+
+        //    ISourceAsset asset = null;
+        //    asset.GetDependencies()
+        //}
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,6 +33,7 @@ namespace USource
             }
         }
         public readonly IResourceProvider ResourceProvider => resourceProvider;
+        public bool DataExists => resourceProvider != null && resourceProvider.ContainsFile(sourcePath);
         readonly string sourcePath;
         readonly IResourceProvider resourceProvider;
         public Location(string path, Type type, IResourceProvider provider = null)
@@ -77,5 +79,29 @@ namespace USource
             else
                 return HashCode.Combine(sourcePath, resourceProvider.GetHashCode());
         }
+        public AssetType GetAssetType()
+        {
+            int startIndex = sourcePath.IndexOf('.');
+            if (startIndex == -1)
+                return AssetType.None;
+
+            string extension = sourcePath.Substring(startIndex, sourcePath.Length - startIndex);
+
+            switch (extension)
+            {
+                case ".mdl": return AssetType.Mdl;
+                case ".vmt": return AssetType.Vmt;
+                case ".vtf": return AssetType.Vtf;
+            }
+
+            return AssetType.None;
+        }
+    }
+    public enum AssetType
+    {
+        None,
+        Mdl,
+        Vtf,
+        Vmt,
     }
 }

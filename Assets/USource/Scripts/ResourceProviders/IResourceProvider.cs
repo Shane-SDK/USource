@@ -9,6 +9,13 @@ namespace USource
     /// </summary>
     public interface IResourceProvider
     {
+        public Stream this[Location location]
+        {
+            get
+            {
+                return OpenFile(location.SourcePath);
+            }
+        }
         bool ContainsFile(string FilePath);
         Stream OpenFile(string FilePath);
         /// <summary>

@@ -75,6 +75,20 @@ namespace USource.Windows
                 //else
                 //    element.AddToClassList("entry-2n");
             };
+            rootView.selectedIndicesChanged += (indices) =>
+            {
+                Location location = entries[entryIndices[indices.First()]];
+                ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+                System.IO.Stream stream = location.ResourceProvider[location];
+                List<Location> dependencies = new();
+                sourceAsset.GetDependencies(stream, dependencies);
+                if (ResourceManager.CreateUnityObject(location, dependencies, out UnityEngine.Object obj))
+                {
+                    UnityEditor.AssetPreview.SetPreviewTextureCacheSize(512);
+                    Texture2D preview = UnityEditor.AssetPreview.GetAssetPreview(obj);
+                    rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(preview);
+                }
+            };
 
             rootVisualElement.Q<Button>("import").clicked += () =>
             {
