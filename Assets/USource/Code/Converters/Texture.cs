@@ -17,8 +17,8 @@ namespace USource.Converters
     {
         public enum ImportOptions
         {
-            Normal,
-            Grayscale,
+            Normal = 1 << 0,
+            Grayscale = 1 << 1,
         }
         UnityEngine.Texture2D texture;
         VTFFile vtf;
@@ -32,7 +32,7 @@ namespace USource.Converters
             this.importFlags = importFlags;
             this.maxSize = maxSize;
         }
-        public override UnityEngine.Object CreateAsset()
+        public override UnityEngine.Object CreateAsset(ImportMode importMode)
         {
             // Create texture object
             Texture2D unityTexture;
@@ -118,27 +118,6 @@ namespace USource.Converters
             unityObject = unityTexture;
 
             return unityTexture;
-        }
-
-        public override Texture2D CreatePreviewTexture()
-        {
-            return texture;
-        }
-        public override void SaveToAssetDatabase(UnityEngine.Object obj)
-        {
-            base.SaveToAssetDatabase(obj);
-
-            string assetDatabasePath = AssetDatabasePath;
-
-            UnityEditor.AssetDatabase.CreateAsset(obj, assetDatabasePath);
-
-
-            obj = UnityEditor.AssetDatabase.LoadAssetAtPath(assetDatabasePath, UnityObjectType);
-
-            if (importFlags != 0)
-            {
-                UnityEditor.AssetDatabase.SaveAssetIfDirty(obj);
-            }
         }
     }
 }

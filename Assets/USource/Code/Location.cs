@@ -29,7 +29,7 @@ namespace USource
         {
             get
             {
-                return $"{UnityEngine.Application.dataPath}/{AssetPath.Remove(0, 7)}";
+                return $"{UnityEngine.Application.dataPath}/{AssetPath}";
             }
         }
         public readonly IResourceProvider ResourceProvider => resourceProvider;

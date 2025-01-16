@@ -1,11 +1,12 @@
 ﻿using System.IO;
 using System.Collections.Generic;
+using USource.Converters;
 
 namespace USource.SourceAsset
 {
     public interface ISourceAsset
     {
-        public void GetDependencies(Stream stream, List<Location> dependencies);
+        public void GetDependencies(Stream stream, List<Location> dependencies, ImportMode mode = ImportMode.CreateAndCache);
         public Location Location { get; }
         public static ISourceAsset FromLocation(Location location)
         {

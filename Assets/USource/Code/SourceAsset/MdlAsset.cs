@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using USource.Formats.Source.MDL;
 using static USource.Formats.Source.MDL.StudioStruct;
+using USource.Converters;
 
 namespace USource.SourceAsset
 {
@@ -14,13 +15,13 @@ namespace USource.SourceAsset
         {
             location = loc;
         }
-        public void GetDependencies(Stream stream, List<Location> depdendencies)
+        public void GetDependencies(Stream stream, List<Location> depdendencies, ImportMode importMode = ImportMode.CreateAndCache)
         {
             depdendencies.Add(location);
-            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vvd"), Location.Type.Source, location.ResourceProvider));
-            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vtx"), Location.Type.Source, location.ResourceProvider));
-            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".sw.vtx"), Location.Type.Source, location.ResourceProvider));
-            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".phy"), Location.Type.Source, location.ResourceProvider));
+            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vvd"), Location.Type.Source, location.ResourceProvider));
+            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vtx"), Location.Type.Source, location.ResourceProvider));
+            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".sw.vtx"), Location.Type.Source, location.ResourceProvider));
+            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".phy"), Location.Type.Source, location.ResourceProvider));
             stream.Position = 0;
             UReader reader = new UReader(stream);
             studiohdr_t header = default;
@@ -48,9 +49,8 @@ namespace USource.SourceAsset
                 foreach (string name in textureNames)
                 {
                     Location location = new Location($"materials/{dir}{name}.vmt", Location.Type.Source, depdendencies[0].ResourceProvider);
-                    if (location.ResourceProvider.ContainsFile(location.SourcePath))
+                    if (USource.ResourceManager.GetStream(location, out Stream depStream, importMode))
                     {
-                        Stream depStream = location.ResourceProvider[location];
                         new VmtAsset(location).GetDependencies(depStream, depdendencies);
                     }
                 }

@@ -227,7 +227,7 @@ namespace USource
             {
                 if (result.Parser.ElementName.EndsWith(".String"))
                 {
-                    _value = ReadString(result, flags);
+                    _value = ReadString(result, flags).ToLower();
                     return;
                 }
 

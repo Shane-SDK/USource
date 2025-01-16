@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using USource.Converters;
 using System.Diagnostics;
+using USource.SourceAsset;
 
 namespace USource
 {
@@ -136,6 +137,133 @@ namespace USource
             stream = null;
             return false;
         }
+        public bool CreateUnityObject(Location location, out UnityEngine.Object unityObject)
+        {
+            if (GetUnityObjectFromCache(location, out unityObject, true))
+                return true;
+
+            // Get list of dependencies
+            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            System.IO.Stream stream = location.ResourceProvider[location];
+            List<Location> dependencies = new();
+            sourceAsset.GetDependencies(stream, dependencies);
+            // go in reverse order
+            // ensure every dependency exists before attempting to create most-dependent object
+            for (int i = dependencies.Count - 1; i >= 0; i--)
+            {
+                // check if object already exists in cache
+                Location dependency = dependencies[i];
+                if (dependency.GetAssetType() == AssetType.None)  // Not a supported format
+                    continue;
+
+                if (GetUnityObjectFromCache(dependency, out unityObject, true))  // Asset exists in cache
+                    continue;
+
+                // Asset hasn't been made at this point, create the asset and cache it
+
+                // Find a resource provider that has the data
+                if (((dependencies[0].ResourceProvider != null && dependencies[0].ResourceProvider.TryGetFile(dependency.SourcePath, out stream)) ||  // Does parent asset have the file
+                    TryFindResourceProviderOpenFile(dependency, out _, out stream)) == false)  // Does any resource provider have the file
+                    continue;  // Neither methods gave the file
+
+
+                // create object and store in cache
+                Converter converter = Converter.FromLocation(dependency, stream);
+                unityObject = converter.CreateAsset( ImportMode.CreateAndCache );
+                if (unityObject != null)
+                    Cache(dependency, unityObject);
+
+                stream.Close();
+            }
+
+            return unityObject != null;
+        }
+        public void ImportSourceAssetToAssetDatabase(Location location)
+        {
+#if UNITY_EDITOR
+            /*
+             * Get dependencies
+             * Copy file from resource provider to asset database
+             */
+
+            if (!location.ResourceProvider.TryGetFile(location.SourcePath, out Stream stream) && !TryFindResourceProviderOpenFile(location, out _, out stream))  // Cannot locate file
+                return;
+
+            List<Location> dependencies = new();
+            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            sourceAsset.GetDependencies(stream, dependencies);
+            stream.Close();
+
+            for (int i = dependencies.Count - 1; i >= 0; i--)
+            {
+                Location dependency = dependencies[i];
+                Stream assetStream = null;
+                if (!(dependencies[i].ResourceProvider != null && dependencies[i].ResourceProvider.TryGetFile(dependency.SourcePath, out assetStream)) &&  // Couldn't find data in immediate location
+                    !(TryFindResourceProviderOpenFile(dependency, out _, out assetStream)))  // Data isn't in providers
+                    continue;  // Data doesn't exist
+
+                System.IO.Directory.CreateDirectory(Path.GetDirectoryName(dependency.AssetPath));
+                using (var fileStream = File.Create(dependency.AssetPath, 16, FileOptions.WriteThrough))
+                {
+                    assetStream.CopyTo(fileStream);
+                }
+            }
+#endif
+        }
+        void Cache(Location location, UnityEngine.Object obj)
+        {
+            objectCache[location] = obj;
+            // todo -- prioritize certain resource locations???
+            objectCache[location.CopyNoResourceLocation()] = obj;
+        }
+        public bool GetUnityObjectFromCache(Location location, out UnityEngine.Object obj, bool useResourceProvider = false)
+        {
+            if (useResourceProvider && objectCache.TryGetValue(location, out obj))
+                return true;
+
+            return objectCache.TryGetValue(location.CopyNoResourceLocation(), out obj);
+        }
+        public bool GetUnityObjectFromCache<T>(Location location, out T castObject, bool useResourceProvider = false) where T : UnityEngine.Object 
+        {
+            if (GetUnityObjectFromCache(location, out UnityEngine.Object obj, useResourceProvider) && obj is T)
+            {
+                castObject = (T)obj;
+                return true;
+            }
+
+            castObject = null;
+            return false;
+        }
+        public bool GetUnityObject<T>(Location location, out T unityObject, ImportMode importMode, bool useResourceProvider = false) where T : UnityEngine.Object
+        {
+            unityObject = null;
+            if (importMode == ImportMode.CreateAndCache && GetUnityObjectFromCache<T>(location, out unityObject, useResourceProvider))
+                return true;
+#if UNITY_EDITOR
+            else if (importMode == ImportMode.AssetDatabase)
+            {
+                unityObject = UnityEditor.AssetDatabase.LoadAssetAtPath<T>(location.AssetPath);
+                return unityObject != null;
+            }
+#endif
+
+            return false;
+        }
+        public bool GetStream(Location location, out Stream stream, ImportMode mode = ImportMode.CreateAndCache)
+        {
+            if (mode == ImportMode.CreateAndCache && TryFindResourceProviderOpenFile(location, out _, out stream))
+                return true;
+#if UNITY_EDITOR
+            else if (mode == ImportMode.AssetDatabase && System.IO.File.Exists(location.AbsolutePath))
+            {
+                stream = File.OpenRead(location.AbsolutePath);
+                return true;
+            }
+#endif
+
+            stream = null;
+            return false;
+        }
         //public bool TryResolveMaterialPath(string materialPath, out Location resolvedMaterial)
         //{
         //    // materials/maps/beta house map/building_template/building_template002b_2219_-232_207.vmt      <- CONVERT FROM THIS
@@ -197,62 +325,5 @@ namespace USource
 
         //    return false;
         //}
-        public bool CreateUnityObject(Location location, List<Location> dependencies, out UnityEngine.Object unityObject)
-        {
-            if (GetUnityObjectFromCache(location, out unityObject, true))
-                return true;
-
-            // go in reverse order
-            // ensure every dependency exists before attempting to create most-dependent object
-            for (int i = dependencies.Count - 1; i >= 0; i--)
-            {
-                // check if object already exists in cache
-                Location dependency = dependencies[i];
-                if (GetUnityObjectFromCache(dependency, out unityObject, true))  // Asset exists in cache
-                    continue;
-
-                // Asset hasen't been made at this point, create the asset and cache it
-
-                // Find a resource provider that has the data
-                if (((dependencies[0].ResourceProvider != null && dependencies[0].ResourceProvider.TryGetFile(dependency.SourcePath, out Stream stream)) ||  // Does parent asset have the file
-                    TryFindResourceProviderOpenFile(dependency, out _, out stream)) == false)  // Does any resource provider have the file
-                    continue;  // Neither methods gave the file
-
-
-                // create object and store in cache
-                Converter converter = Converter.FromLocation(dependency, stream);
-                unityObject = converter.CreateAsset();
-                if (unityObject != null)
-                    Cache(dependency, unityObject);
-
-                stream.Close();
-            }
-
-            return unityObject != null;
-        }
-        void Cache(Location location, UnityEngine.Object obj)
-        {
-            objectCache[location] = obj;
-            // todo -- prioritize certain resource locations???
-            objectCache[location.CopyNoResourceLocation()] = obj;
-        }
-        public bool GetUnityObjectFromCache(Location location, out UnityEngine.Object obj, bool useResourceProvider = false)
-        {
-            if (useResourceProvider && objectCache.TryGetValue(location, out obj))
-                return true;
-
-            return objectCache.TryGetValue(location.CopyNoResourceLocation(), out obj);
-        }
-        public bool GetUnityObjectFromCache<T>(Location location, out T castObject, bool useResourceProvider = false) where T : UnityEngine.Object 
-        {
-            if (GetUnityObjectFromCache(location, out UnityEngine.Object obj) && obj is T)
-            {
-                castObject = (T)obj;
-                return true;
-            }
-
-            castObject = null;
-            return false;
-        }
     }
 }

@@ -7,6 +7,8 @@ using UnityEngine;
 using USource;
 using System.IO;
 using USource.Converters;
+using USource.SourceAsset;
+
 namespace USource.AssetImporters
 {
     [ScriptedImporter(0, "mdl")]
@@ -38,8 +40,17 @@ namespace USource.AssetImporters
             TryGetStream(".vtx~", out Stream vtxStream);
             TryGetStream(".vvd~", out Stream vvdStream);
 
-
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
+            List<Location> dependencies = new();
+            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            sourceAsset.GetDependencies(mdlStream, dependencies);
+            for (int i = dependencies.Count - 1; i >= 1; i--)
+            {
+                ctx.DependsOnArtifact(dependencies[i].AssetPath);
+            }
+
+            mdlStream.Close();
+            mdlStream = File.OpenRead(ctx.assetPath);
 
             Model.ImportOptions flags = default;
             if (importHitboxes) flags |= Model.ImportOptions.Hitboxes;
@@ -47,15 +58,7 @@ namespace USource.AssetImporters
             if (importAnimations) flags |= Model.ImportOptions.Animations;
             if (importGeometry) flags |= Model.ImportOptions.Geometry;
             Model model = new Model(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream, flags);
-            foreach (string sourcePathDependency in model.GetSourceAssetDependencies())
-            {
-                Location dependentLocation = new Location(sourcePathDependency, Location.Type.Source);
-
-                ctx.DependsOnArtifact(dependentLocation.AssetPath);
-            }
-
-
-            GameObject obj = model.CreateAsset() as GameObject;
+            GameObject obj = model.CreateAsset( ImportMode.AssetDatabase ) as GameObject;
 
             ctx.AddObjectToAsset("root", obj);
             if (obj.TryGetComponent(out MeshFilter filter))

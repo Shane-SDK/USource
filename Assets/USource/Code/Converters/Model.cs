@@ -58,16 +58,17 @@ namespace USource.Converters
 
             this.importOptions = importOptions;
         }
-        public override UnityEngine.Object CreateAsset()
+        public override UnityEngine.Object CreateAsset(ImportMode importMode)
         {
             bool isStatic = mdl.MDL_Header.flags.HasFlag(StudioHDRFlags.STUDIOHDR_FLAGS_STATIC_PROP);
 
             GameObject model = new GameObject(mdl.MDL_Header.Name);
+            model.hideFlags = HideFlags.HideAndDontSave;
 
             Transform[] Bones = new Transform[mdl.MDL_Header.bone_count];
             Dictionary<Int32, String> bonePathDict = new Dictionary<Int32, String>();
 
-            if (isStatic == false || true)
+            if (isStatic == false)
             {
                 for (Int32 boneID = 0; boneID < mdl.MDL_Header.bone_count; boneID++)
                 {
@@ -214,7 +215,7 @@ namespace USource.Converters
                         for (Int32 DirID = 0; DirID < mdl.MDL_TDirectories.Length; DirID++)
                         {
                             string sourceMaterialPath = "materials/" + mdl.MDL_TDirectories[DirID] + mdl.MDL_Textures[submeshIndex] + ".vmt";
-                            if (USource.ResourceManager.GetUnityObjectFromCache(new Location(sourceMaterialPath, Location.Type.Source), out UnityEngine.Material resource))
+                            if (USource.ResourceManager.GetUnityObject(new Location(sourceMaterialPath, Location.Type.Source), out UnityEngine.Material resource, importMode, true))
                             {
                                 materials.Add(resource);
                                 break;
@@ -510,88 +511,7 @@ namespace USource.Converters
 
             return model;
         }
-        public override IEnumerable<string> GetSourceAssetDependencies()
-        {
-            yield return this.sourcePath.Replace(".mdl", ".vvd");
-            yield return this.sourcePath.Replace(".mdl", ".vtx");
-            yield return this.sourcePath.Replace(".mdl", ".sw.vtx");
-            yield return this.sourcePath.Replace(".mdl", ".phy");
-
-            foreach (string dir in mdl.MDL_TDirectories)
-            {
-                foreach (string name in mdl.MDL_Textures)
-                {
-                    yield return $"materials/{dir}{name}.vmt";
-                }
-            }
-            //foreach (StudioBodyPart bodyPart in mdl.MDL_Bodyparts)
-            //{
-            //    foreach (StudioModel model in bodyPart.Models)
-            //    {
-            //        foreach (mstudiomesh_t mesh in model.Meshes)
-            //        {
-            //            for (int dir = 0; dir < mdl.MDL_TDirectories.Length; dir++)
-            //            {
-            //                string texturePath = $"materials/{mdl.MDL_TDirectories[dir]}{mdl.MDL_Textures[mesh.material]}.vmt";
-
-            //                yield return texturePath;
-            //            }
-            //        }
-            //    }
-            //}
-        }
-        public override Texture2D CreatePreviewTexture()
-        {
-            return UnityEditor.AssetPreview.GetAssetPreview(CreateAsset());
-        }
-        public override void SaveToAssetDatabase(UnityEngine.Object obj)
-        {
-            base.SaveToAssetDatabase(obj);
-
-            string assetDatabasePath = AssetDatabasePath;
-
-            // If the asset already exists, remove sub assets
-            foreach (UnityEngine.Object ob in AssetDatabase.LoadAllAssetRepresentationsAtPath(assetDatabasePath))
-            {
-                AssetDatabase.RemoveObjectFromAsset(ob);
-            }
-
-            GameObject originalGO = obj as GameObject;
-            UnityEditor.PrefabUtility.SaveAsPrefabAsset(originalGO, assetDatabasePath);
-
-            GameObject prefabGO = (UnityEditor.AssetDatabase.LoadAssetAtPath(assetDatabasePath, typeof(UnityEngine.Object)) as GameObject);
-
-            if (originalGO.TryGetComponent<MeshFilter>(out MeshFilter originalMeshFilter))  // If the model is a static prop
-            {
-                UnityEditor.AssetDatabase.AddObjectToAsset(originalMeshFilter.sharedMesh, assetDatabasePath);
-                prefabGO.GetComponent<MeshFilter>().sharedMesh = originalMeshFilter.sharedMesh;
-            }
-            else if (originalGO.TryGetComponent<SkinnedMeshRenderer>(out SkinnedMeshRenderer skinnedMesh)) // Bones
-            {
-                UnityEditor.AssetDatabase.AddObjectToAsset(skinnedMesh.sharedMesh, assetDatabasePath);
-                prefabGO.GetComponent<SkinnedMeshRenderer>().sharedMesh = skinnedMesh.sharedMesh;
-            }
-
-            MeshCollider[] colliders = originalGO.GetComponentsInChildren<MeshCollider>();
-            for (int c = 0; c < colliders.Length; c++)
-            {
-                UnityEditor.AssetDatabase.AddObjectToAsset(colliders[c].sharedMesh, assetDatabasePath);
-
-                prefabGO.GetComponentsInChildren<MeshCollider>()[c].sharedMesh = colliders[c].sharedMesh;
-            }
-
-            if (clips != null)
-            {
-                foreach (AnimationClip clip in clips)
-                {
-                    AssetDatabase.AddObjectToAsset(clip, assetDatabasePath);
-                }
-            }
-
-            GameObject.DestroyImmediate(originalGO);
-        }
     }
-
     public struct Vertex
     {
         public Vector3 position;

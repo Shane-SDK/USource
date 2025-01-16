@@ -83,16 +83,9 @@ namespace USource.Windows
             rootView.selectedIndicesChanged += (indices) =>
             {
                 Location location = entries[entryIndices[indices.First()]];
-                ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
-                System.IO.Stream stream = location.ResourceProvider[location];
-                List<Location> dependencies = new();
-                sourceAsset.GetDependencies(stream, dependencies);
-                if (USource.ResourceManager.CreateUnityObject(location, dependencies, out UnityEngine.Object obj))
+                if (USource.ResourceManager.CreateUnityObject(location, out UnityEngine.Object obj))
                 {
                     currentInstanceId = obj.GetInstanceID();
-                    //Texture2D preview = UnityEditor.AssetPreview.GetAssetPreview(obj);
-                    //UnityEditor.AssetPreview.SetPreviewTextureCacheSize(512);
-                    //rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(preview);
                 }
             };
             rootVisualElement.Q<Button>("refresh").clicked += () =>
@@ -101,21 +94,17 @@ namespace USource.Windows
                 RefreshListView();
             };
 
-            //rootVisualElement.Q<Button>("import").clicked += () =>
-            //{
-            //    foreach (int index in rootView.selectedIndices)
-            //    {
-            //        Location location = entries[entryIndices[index]];
-            //        if (USource.ResourceManager.TryImportAsset(location, out Object unityAsset, ResourceManager.ImportMode.ImportAndLoad))
-            //        {
-            //            AssetDatabase.SaveAssetIfDirty(unityAsset);
-            //            Debug.Log($"Successfully exported {location.SourcePath} ({unityAsset.GetType()}) to assets folder", unityAsset);
-            //        }
-            //    }
+            rootVisualElement.Q<Button>("import").clicked += () =>
+            {
+                foreach (int index in rootView.selectedIndices)
+                {
+                    Location location = entries[entryIndices[index]];
+                    USource.ResourceManager.ImportSourceAssetToAssetDatabase(location);
+                }
 
-            //    AssetDatabase.RefreshSettings();
-            //    AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
-            //};
+                AssetDatabase.RefreshSettings();
+                AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
+            };
 
             RebuildEntries();
             ApplyFilter();
@@ -145,6 +134,8 @@ namespace USource.Windows
                     entries.Add(location);
                 }
             }
+
+            rootVisualElement.Q<ListView>().ClearSelection();
         }
         void ApplyFilter()
         {

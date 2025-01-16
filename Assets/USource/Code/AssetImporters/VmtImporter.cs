@@ -7,6 +7,8 @@ using UnityEngine;
 using USource;
 using System.IO;
 using USource.Converters;
+using USource.SourceAsset;
+
 namespace USource.AssetImporters
 {
     [ScriptedImporter(0, "vmt")]
@@ -17,19 +19,22 @@ namespace USource.AssetImporters
         public override void OnImportAsset(AssetImportContext ctx)
         {
             Stream stream = File.OpenRead(ctx.assetPath);
+            Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase, null);
+            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            List<Location> dependencies = new();
+            sourceAsset.GetDependencies(stream, dependencies);
 
-            string sourcePath = USource.AssetPathToSourcePath(ctx.assetPath);
-
-            Converters.Material materialConverter = new Converters.Material(sourcePath, stream);
-
-            flags = materialConverter.flags;
-
-            foreach (string sourcePathDependency in materialConverter.GetSourceAssetDependencies())
+            for (int i = dependencies.Count - 1; i >= 1; i--)  // Do not include location to this asset
             {
-                Location depenLocation = new Location(sourcePathDependency, Location.Type.Source);
+                Location depenLocation = dependencies[i];
                 ctx.DependsOnArtifact(depenLocation.AssetPath);
             }
 
+            stream.Close();
+            stream = File.OpenRead(ctx.assetPath);
+
+            Converters.Material materialConverter = new Converters.Material(location.SourcePath, stream);
+            flags = materialConverter.flags;
             maps = new();
             foreach (KeyValuePair<Converters.Material.Map, Location> pair in materialConverter.Maps)
             {
@@ -55,9 +60,7 @@ namespace USource.AssetImporters
                 }
             }
 
-            
-
-            UnityEngine.Material obj = materialConverter.CreateAsset() as UnityEngine.Material;
+            UnityEngine.Material obj = materialConverter.CreateAsset( ImportMode.AssetDatabase ) as UnityEngine.Material;
             ctx.AddObjectToAsset("material", obj);
             ctx.SetMainObject(obj);
 

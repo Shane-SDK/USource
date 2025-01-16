@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using USource.Converters;
 
 namespace USource.SourceAsset
 {
@@ -12,7 +13,7 @@ namespace USource.SourceAsset
         {
             location = loc;
         }
-        public void GetDependencies(Stream stream, List<Location> depdendencies)
+        public void GetDependencies(Stream stream, List<Location> depdendencies, ImportMode mode = ImportMode.CreateAndCache)
         {
             depdendencies.Add(location);
             KeyValues keys = KeyValues.FromStream(stream);

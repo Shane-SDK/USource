@@ -50,17 +50,7 @@ namespace USource.Converters
         {
             this.sourcePath = sourcePath;
         }
-        public abstract UnityEngine.Object CreateAsset();
-        public abstract UnityEngine.Texture2D CreatePreviewTexture();
-        public virtual IEnumerable<string> GetSourceAssetDependencies() { return Enumerable.Empty<string>(); }
-        public virtual void SaveToAssetDatabase(UnityEngine.Object obj)
-        {
-            string absolutePath = AbsolutePath;
-
-            int lastSlash = absolutePath.LastIndexOf('/') + 1;
-            System.IO.Directory.CreateDirectory(absolutePath.Remove(lastSlash, absolutePath.Length - lastSlash));
-
-        }
+        public abstract UnityEngine.Object CreateAsset(ImportMode importMode = ImportMode.CreateAndCache);
         public static Converter FromLocation(Location location, System.IO.Stream assetStream)
         {
             Converter converter;
@@ -135,5 +125,12 @@ namespace USource.Converters
                 ).eulerAngles;
         }
         public static Vector3 AxisConvertSource(Vector3 sourceAxis) => new Vector3(sourceAxis.x, sourceAxis.z, sourceAxis.y);
+
+        
+    }
+    public enum ImportMode
+    {
+        CreateAndCache,
+        AssetDatabase
     }
 }
