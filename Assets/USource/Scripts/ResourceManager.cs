@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using USource.Converters;
 using JetBrains.Annotations;
+using UnityEditor.VersionControl;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -81,7 +82,7 @@ namespace USource
                 stream.Dispose();
             }
 
-            Debug.Log($"Found {resourceProviders.Count} resource providers");
+            //Debug.Log($"Found {resourceProviders.Count} resource providers");
         }
         /// <summary>
         /// Creates resource providers through a game's gameinfo.txt file
@@ -158,6 +159,21 @@ namespace USource
             }
 
             provider = null;
+            return false;
+        }
+        public static bool TryFindResourceProviderOpenFile(Location location, out IResourceProvider provider, out Stream stream)
+        {
+            foreach (IResourceProvider otherProvider in resourceProviders)
+            {
+                if (otherProvider.TryGetFile(location.SourcePath, out stream))
+                {
+                    provider = otherProvider;
+                    return true;
+                }
+            }
+
+            provider = null;
+            stream = null;
             return false;
         }
         //public static bool TryImportAssetInline<T>(Location location, out T resource) where T : UnityEngine.Object
@@ -351,10 +367,6 @@ namespace USource
 
             return false;
         }
-        public static string NormalizePath(string path)
-        {
-            return path.Replace(@"\", "/").ToLower();
-        }
         public static Type GetTypeFromExtension(string sourceExtension)
         {
             switch (sourceExtension)
@@ -388,20 +400,6 @@ namespace USource
 
             return "";
         }
-        public static string ResourcePathToUnityAssetPath(string sourcePath)
-        {
-            sourcePath = NormalizePath(sourcePath);
-
-            string sourceExtension = sourcePath.Split('.')[^1];
-            Type type = GetTypeFromExtension(sourcePath.Split('.')[^1]);
-
-            if (type == null)
-            {
-                return null;
-            }
-
-            return $"Assets/USource/Assets/{StripExtension(sourcePath)}.{GetUnityAssetExtension(type)}";
-        }
         public static string AssetPathToSourcePath(string assetPath)
         {
             string preceedingPath = $"Assets/USource/Assets/";
@@ -411,13 +409,13 @@ namespace USource
         {
             return $"Assets/USource/Assets/{sourcePath}";  // Path of the asset relative to project
         }
-        public static bool GetResourceData(IResourceProvider provider, Location location, out Stream stream)
-        {
-            stream = provider[location];
-            return stream != null;
-        }
         public static bool CreateUnityObject(Location location, List<Location> dependencies, out UnityEngine.Object unityObject)
         {
+            if (objectCache.TryGetValue(location.CopyNoResourceLocation(), out unityObject))
+            {
+                return true;
+            }
+
             // go in reverse order
             unityObject = null;
 
@@ -426,20 +424,31 @@ namespace USource
                 // check if object already exists in cache
                 // if not, create it
                 Location dependency = dependencies[i];
-                if (objectCache.TryGetValue(dependency, out unityObject))
+                Location dependencyNoResourceLocation = dependency.CopyNoResourceLocation();
+                if (objectCache.TryGetValue(dependencyNoResourceLocation, out unityObject))  // Asset exists in cache
                 {
+                    //Debug.Log("exists in cache");
                     continue;
                 }
-                else if (TryFindResourceProvider(location, out IResourceProvider provider))
+
+                // Find a resource provider that has the data
+                if (((dependencies[0].ResourceProvider != null && dependencies[0].ResourceProvider.TryGetFile(dependency.SourcePath, out Stream stream)) ||  // Does parent asset have the file
+                    TryFindResourceProviderOpenFile(location, out _, out stream)) == false)  // Does any resource provider have the file
                 {
-                    // create object and store in cache
-                    Converter converter = Converter.FromLocation(location, provider, provider[location]);
-                    unityObject = converter.CreateAsset(default, true);
-                    if (unityObject != null)
-                    {
-                        objectCache[location] = unityObject;
-                    }
+                    // Neither methods gave the file
+                    //Debug.Log("does not exist");
+                    continue;
                 }
+
+                // create object and store in cache
+                Converter converter = Converter.FromLocation(location, null, stream);
+                unityObject = converter.CreateAsset(default, true);
+                if (unityObject != null)
+                {
+                    objectCache[dependencyNoResourceLocation] = unityObject;
+                }
+                stream.Close();
+                //Debug.Log("exists -- created");
             }
 
             return unityObject != null;

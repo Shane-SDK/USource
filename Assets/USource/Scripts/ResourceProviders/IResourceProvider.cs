@@ -28,5 +28,16 @@ namespace USource
         public string GetName();
         public virtual int GetPriority() => 0;
         public IEnumerable<string> GetFiles();
+        public bool TryGetFile(string filePath, out Stream stream)
+        {
+            if (ContainsFile(filePath))
+            {
+                stream = OpenFile(filePath);
+                return true;
+            }
+
+            stream = null;
+            return false;
+        }
     }
 }

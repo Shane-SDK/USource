@@ -96,6 +96,10 @@ namespace USource
 
             return AssetType.None;
         }
+        public Location CopyNoResourceLocation()
+        {
+            return new Location(SourcePath, Type.Source, null);
+        }
     }
     public enum AssetType
     {

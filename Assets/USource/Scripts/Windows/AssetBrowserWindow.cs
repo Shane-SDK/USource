@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using UnityEngine.UIElements;
 using USource.SourceAsset;
@@ -38,6 +39,7 @@ namespace USource.Windows
         }
         List<Location> entries = new();
         List<int> entryIndices = new();
+        int currentInstanceId;
         private void CreateGUI()
         {
             ResourceManager.Init();
@@ -85,9 +87,10 @@ namespace USource.Windows
                 sourceAsset.GetDependencies(stream, dependencies);
                 if (ResourceManager.CreateUnityObject(location, dependencies, out UnityEngine.Object obj))
                 {
-                    UnityEditor.AssetPreview.SetPreviewTextureCacheSize(512);
-                    Texture2D preview = UnityEditor.AssetPreview.GetAssetPreview(obj);
-                    rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(preview);
+                    currentInstanceId = obj.GetInstanceID();
+                    //Texture2D preview = UnityEditor.AssetPreview.GetAssetPreview(obj);
+                    //UnityEditor.AssetPreview.SetPreviewTextureCacheSize(512);
+                    //rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(preview);
                 }
             };
 
@@ -110,6 +113,12 @@ namespace USource.Windows
             RebuildEntries();
             ApplyFilter();
             RefreshListView();
+        }
+        private void OnGUI()
+        {
+            UnityEngine.Object unityObject = EditorUtility.InstanceIDToObject(currentInstanceId);
+            Texture2D tex = AssetPreview.GetAssetPreview(unityObject);
+            rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(tex);
         }
         void RebuildEntries()
         {
