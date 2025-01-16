@@ -42,7 +42,7 @@ namespace USource.Windows
         int currentInstanceId;
         private void CreateGUI()
         {
-            ResourceManager.Init();
+            USource.Init();
 
             if (TryLoadAsset("t:VisualTreeAsset AssetBrowser", new[] { "Assets/USource" }, out VisualTreeAsset rootAsset) == false)
             {
@@ -87,7 +87,7 @@ namespace USource.Windows
                 System.IO.Stream stream = location.ResourceProvider[location];
                 List<Location> dependencies = new();
                 sourceAsset.GetDependencies(stream, dependencies);
-                if (ResourceManager.CreateUnityObject(location, dependencies, out UnityEngine.Object obj))
+                if (USource.ResourceManager.CreateUnityObject(location, dependencies, out UnityEngine.Object obj))
                 {
                     currentInstanceId = obj.GetInstanceID();
                     //Texture2D preview = UnityEditor.AssetPreview.GetAssetPreview(obj);
@@ -96,21 +96,21 @@ namespace USource.Windows
                 }
             };
 
-            rootVisualElement.Q<Button>("import").clicked += () =>
-            {
-                foreach (int index in rootView.selectedIndices)
-                {
-                    Location location = entries[entryIndices[index]];
-                    if (ResourceManager.TryImportAsset(location, out Object unityAsset, ResourceManager.ImportMode.ImportAndLoad))
-                    {
-                        AssetDatabase.SaveAssetIfDirty(unityAsset);
-                        Debug.Log($"Successfully exported {location.SourcePath} ({unityAsset.GetType()}) to assets folder", unityAsset);
-                    }
-                }
+            //rootVisualElement.Q<Button>("import").clicked += () =>
+            //{
+            //    foreach (int index in rootView.selectedIndices)
+            //    {
+            //        Location location = entries[entryIndices[index]];
+            //        if (USource.ResourceManager.TryImportAsset(location, out Object unityAsset, ResourceManager.ImportMode.ImportAndLoad))
+            //        {
+            //            AssetDatabase.SaveAssetIfDirty(unityAsset);
+            //            Debug.Log($"Successfully exported {location.SourcePath} ({unityAsset.GetType()}) to assets folder", unityAsset);
+            //        }
+            //    }
 
-                AssetDatabase.RefreshSettings();
-                AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
-            };
+            //    AssetDatabase.RefreshSettings();
+            //    AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
+            //};
 
             RebuildEntries();
             ApplyFilter();
@@ -127,7 +127,7 @@ namespace USource.Windows
             entries.Clear();
             entryIndices.Clear();
 
-            foreach (IResourceProvider provider in ResourceManager.ResourceProviders)
+            foreach (IResourceProvider provider in USource.ResourceManager.ResourceProviders)
             {
                 foreach (string path in provider.GetFiles())
                 {

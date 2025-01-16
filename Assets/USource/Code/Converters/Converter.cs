@@ -28,7 +28,7 @@ namespace USource.Converters
         {
             get
             {
-                return $"Assets/USource/Assets/{ResourceManager.StripExtension(sourcePath)}.{ResourceManager.GetUnityAssetExtension(UnityObjectType)}";
+                return $"Assets/USource/Assets/{USource.StripExtension(sourcePath)}.{USource.GetUnityAssetExtension(UnityObjectType)}";
             }
         }
         public string AbsolutePath
@@ -42,7 +42,7 @@ namespace USource.Converters
         {
             get
             {
-                return ResourceManager.GetTypeFromExtension(sourcePath.Split('.')[^1]);
+                return USource.GetTypeFromExtension(sourcePath.Split('.')[^1]);
             }
         }
         protected UnityEngine.Object unityObject;
@@ -85,17 +85,17 @@ namespace USource.Converters
                     //// Physics model
                     //TryGetStream(location.SourcePath.Replace(".mdl", ".phy"), out Stream physStream);
 
-                    converter = new USource.Converters.Model(location.SourcePath, assetStream, null, null, null);
+                    converter = new Converters.Model(location.SourcePath, assetStream, null, null, null);
 
                     //physStream?.Close();
                     //vvdStream?.Close();
                     //vtxStream?.Close();
                     break;
                 case ".vmt":
-                    converter = new USource.Converters.Material(location.SourcePath, assetStream);
+                    converter = new Converters.Material(location.SourcePath, assetStream);
                     break;
                 case ".vtf":
-                    converter = new USource.Converters.Texture(location.SourcePath, assetStream, flags);
+                    converter = new Converters.Texture(location.SourcePath, assetStream, flags);
                     break;
                 default:
                     converter = null;

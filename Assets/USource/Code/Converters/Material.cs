@@ -67,13 +67,13 @@ namespace USource.Converters
         public override UnityEngine.Object CreateAsset(ResourceManager.ImportFlags importFlags = 0, bool saveChildrenToAssets = false)
         {
             // Check if this is including a material and just return that
-            if (vmt.TryGetValue("include", out string includedMaterialPath))
-            {
-                if (ResourceManager.TryImportAsset<UnityEngine.Material>(new Location(includedMaterialPath, Location.Type.Source), out UnityEngine.Material includedAsset))
-                {
-                    return includedAsset;
-                }
-            }
+            //if (vmt.TryGetValue("include", out string includedMaterialPath))
+            //{
+            //    if (ResourceManager.TryImportAsset<UnityEngine.Material>(new Location(includedMaterialPath, Location.Type.Source), out UnityEngine.Material includedAsset))
+            //    {
+            //        return includedAsset;
+            //    }
+            //}
 
             // Create a new material
             //UnityEngine.Shader shader = GetShader(vmt.shaderKey);
@@ -95,23 +95,23 @@ namespace USource.Converters
             material.doubleSidedGI = true;
             material.name = vmt.FileName;
 
-            if (vmt.TryGetValue("$basetexture", out string value))
-            {
-                string texturePath = $"materials/{value}.vtf";
-                if (ResourceManager.TryImportAsset(new Location(texturePath, Location.Type.Source), out UnityEngine.Texture texture))
-                {
-                    material.mainTexture = texture;
-                }
-            }
+            //if (vmt.TryGetValue("$basetexture", out string value))
+            //{
+            //    string texturePath = $"materials/{value}.vtf";
+            //    if (ResourceManager.TryImportAsset(new Location(texturePath, Location.Type.Source), out UnityEngine.Texture texture))
+            //    {
+            //        material.mainTexture = texture;
+            //    }
+            //}
 
-            if (vmt.TryGetValue("$bumpmap", out string bumpString))
-            {
-                string texturePath = $"materials/{bumpString}.vtf";
-                if (ResourceManager.TryImportAsset(new Location(texturePath, Location.Type.Source), out UnityEngine.Texture texture))
-                {
-                    material.SetTexture("_bumpMap", texture);
-                }
-            }
+            //if (vmt.TryGetValue("$bumpmap", out string bumpString))
+            //{
+            //    string texturePath = $"materials/{bumpString}.vtf";
+            //    if (ResourceManager.TryImportAsset(new Location(texturePath, Location.Type.Source), out UnityEngine.Texture texture))
+            //    {
+            //        material.SetTexture("_bumpMap", texture);
+            //    }
+            //}
 
             // https://forum.unity.com/threads/change-standard-shader-render-mode-in-runtime.318815/
 
@@ -163,24 +163,24 @@ namespace USource.Converters
                 material.SetInt("Emissive", 1);
             }
 
-            if (vmt.TryGetValue("$selfillummask", out string illumMask) && ResourceManager.TryImportAsset(new Location(illumMask, Location.Type.Source), out Texture2D illumMaskTexture))
-            {
-                material.SetTexture("EmissiveMask", illumMaskTexture);
-            }
+            //if (vmt.TryGetValue("$selfillummask", out string illumMask) && ResourceManager.TryImportAsset(new Location(illumMask, Location.Type.Source), out Texture2D illumMaskTexture))
+            //{
+            //    material.SetTexture("EmissiveMask", illumMaskTexture);
+            //}
 
             //if (vmt.TryGetValue("$basealphaenvmapmask", out string v))
             //    UnityEngine.Debug.Log(v);
 
-            if (vmt.TryGetValue("$envmapmask", out string envmapMaskPath))
-            {
-                envmapMaskPath = $"materials/{envmapMaskPath}.vtf";
-                if (ResourceManager.TryImportAsset<UnityEngine.Texture>(new Location(envmapMaskPath, Location.Type.Source), out UnityEngine.Texture texture))
-                {
-                    //material.SetTexture("_SpecGlossMap", texture);
-                    //material.SetTexture("_MetallicGlossMap", texture);
-                    material.SetTexture("_envmapMask", texture);
-                }
-            }
+            //if (vmt.TryGetValue("$envmapmask", out string envmapMaskPath))
+            //{
+            //    envmapMaskPath = $"materials/{envmapMaskPath}.vtf";
+            //    if (ResourceManager.TryImportAsset<UnityEngine.Texture>(new Location(envmapMaskPath, Location.Type.Source), out UnityEngine.Texture texture))
+            //    {
+            //        //material.SetTexture("_SpecGlossMap", texture);
+            //        //material.SetTexture("_MetallicGlossMap", texture);
+            //        material.SetTexture("_envmapMask", texture);
+            //    }
+            //}
 
             if (vmt.TryGetValue("$basealphaenvmapmask", out float _))
             {

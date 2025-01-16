@@ -18,7 +18,7 @@ namespace USource.AssetImporters
         {
             Stream stream = File.OpenRead(ctx.assetPath);
 
-            string sourcePath = ResourceManager.AssetPathToSourcePath(ctx.assetPath);
+            string sourcePath = USource.AssetPathToSourcePath(ctx.assetPath);
 
             Converters.Material materialConverter = new Converters.Material(sourcePath, stream);
 

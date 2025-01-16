@@ -119,7 +119,7 @@ namespace USource.Formats.Source.VBSP
             file.BSP_Vertices = new Vector3[file.BSP_Header.Lumps[3].FileLen / 12];
 
             for (Int32 i = 0; i < file.BSP_Vertices.Length; i++)
-                file.BSP_Vertices[i] = file.BSPFileReader.ReadVector3D(true) * ResourceManager.settings.sourceToUnityScale;
+                file.BSP_Vertices[i] = file.BSPFileReader.ReadVector3D(true) * USource.settings.sourceToUnityScale;
 
             file.BSP_Surfedges = new Int32[file.BSP_Header.Lumps[13].FileLen / 4];
             file.BSPFileReader.ReadArray(ref file.BSP_Surfedges, file.BSP_Header.Lumps[13].FileOfs);

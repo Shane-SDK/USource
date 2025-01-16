@@ -203,7 +203,7 @@ namespace USource.Formats.Source.MDL
                                         Position.x = -Position.x;
 
                                     //Corrects global scale and convert radians to degrees
-                                    Position *= ResourceManager.settings.sourceToUnityScale;
+                                    Position *= USource.settings.sourceToUnityScale;
                                     Rotation *= Mathf.Rad2Deg;
                                     Quaternion quat;
 

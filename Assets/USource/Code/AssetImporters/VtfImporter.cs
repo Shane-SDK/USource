@@ -22,7 +22,7 @@ namespace USource.AssetImporters
         {
             Stream stream = File.OpenRead(ctx.assetPath);
 
-            string sourcePath = ResourceManager.AssetPathToSourcePath(ctx.assetPath);
+            string sourcePath = USource.AssetPathToSourcePath(ctx.assetPath);
 
             Converters.Texture texture = new Converters.Texture(sourcePath, stream, normalMap ? ResourceManager.ImportFlags.Normal : 0, maxSize);
             texture.mipmaps = mipmaps;

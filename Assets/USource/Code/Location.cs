@@ -22,7 +22,7 @@ namespace USource
         {
             get
             {
-                return ResourceManager.SourcePathToAssetPath(ResolveExtension(sourcePath));
+                return USource.SourcePathToAssetPath(ResolveExtension(sourcePath));
             }
         }
         public string AbsolutePath
@@ -44,7 +44,7 @@ namespace USource
                 case Type.Source:
                     this.sourcePath = path; break;
                 case Type.AssetDatabase:
-                    this.sourcePath = ResourceManager.AssetPathToSourcePath(path); break;
+                    this.sourcePath = USource.AssetPathToSourcePath(path); break;
                 default:
                     this.sourcePath = path; break;
             }

@@ -64,7 +64,7 @@ namespace USource.Converters
 
                     Bones[boneID] = BoneObject.transform;//MDL_Bones.Add(BoneObject.transform);
 
-                    Vector3 pos = mdl.MDL_StudioBones[boneID].pos * ResourceManager.settings.sourceToUnityScale;
+                    Vector3 pos = mdl.MDL_StudioBones[boneID].pos * USource.settings.sourceToUnityScale;
                     Vector3 rot = mdl.MDL_StudioBones[boneID].rot * Mathf.Rad2Deg;
 
                     //Invert x for convert right-handed to left-handed
@@ -109,8 +109,8 @@ namespace USource.Converters
                         mstudiobbox_t hitbox = mdl.Hitboxes[hitboxsetID][hitboxID].BBox;
                         BoxCollider bbox = new GameObject(String.Format("Hitbox_{0}", Bones[hitbox.bone].name)).AddComponent<BoxCollider>();
 
-                        bbox.size = MathLibrary.NegateX(hitbox.bbmax - hitbox.bbmin) * ResourceManager.settings.sourceToUnityScale;
-                        bbox.center = (MathLibrary.NegateX(hitbox.bbmax + hitbox.bbmin) / 2) * ResourceManager.settings.sourceToUnityScale;
+                        bbox.size = MathLibrary.NegateX(hitbox.bbmax - hitbox.bbmin) * USource.settings.sourceToUnityScale;
+                        bbox.center = (MathLibrary.NegateX(hitbox.bbmax + hitbox.bbmin) / 2) * USource.settings.sourceToUnityScale;
 
                         bbox.transform.parent = Bones[hitbox.bone];
                         bbox.transform.localPosition = Vector3.zero;
@@ -199,16 +199,16 @@ namespace USource.Converters
                             submesh.Item1.Add(Model.IndicesPerLod[0][meshID][i] + indexOffset);
                         }
 
-                        // Load material
-                        for (Int32 DirID = 0; DirID < mdl.MDL_TDirectories.Length; DirID++)
-                        {
-                            string MaterialPath = "materials/" + mdl.MDL_TDirectories[DirID] + mdl.MDL_Textures[submeshIndex] + ".vmt";
-                            if (ResourceManager.TryImportAsset(new Location(MaterialPath, Location.Type.Source), out UnityEngine.Material resource))
-                            {
-                                materials.Add(resource);
-                                break;
-                            }
-                        }
+                        //// Load material
+                        //for (Int32 DirID = 0; DirID < mdl.MDL_TDirectories.Length; DirID++)
+                        //{
+                        //    string MaterialPath = "materials/" + mdl.MDL_TDirectories[DirID] + mdl.MDL_Textures[submeshIndex] + ".vmt";
+                        //    if (USource.ResourceManager.TryImportAsset(new Location(MaterialPath, Location.Type.Source), out UnityEngine.Material resource))
+                        //    {
+                        //        materials.Add(resource);
+                        //        break;
+                        //    }
+                        //}
                     }
 
                     indexOffset = vertices.Count;

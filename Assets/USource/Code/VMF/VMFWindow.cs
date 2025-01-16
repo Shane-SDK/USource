@@ -28,12 +28,12 @@ namespace USource.VMF
 
         private void VMFEditor_clicked()
         {
-            string path = EditorUtility.OpenFilePanel("Select a VMF", USource.ResourceManager.settings.GamePaths[0] + "/maps", "vmf");
+            string path = EditorUtility.OpenFilePanel("Select a VMF", USource.settings.GamePaths[0] + "/maps", "vmf");
 
             if (string.IsNullOrEmpty(path) || System.IO.File.Exists(path) == false)
                 return;
 
-            VMF.CreateFromVMF(path);
+            //VMF.CreateFromVMF(path);
         }
     }
 }
