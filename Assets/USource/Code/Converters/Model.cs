@@ -38,13 +38,15 @@ namespace USource.Converters
         };
         public Formats.Source.MDL.MDLFile mdl;
         public List<AnimationClip> clips;
+        VTXFile vtxFile;
         public Model(string sourcePath, Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream) : base(sourcePath, stream)
         {
+            stream.Position = 0;
             mdl = new MDLFile(stream, physStream, true);
 
             if (vvdStream != null && vtxStream != null)
             {
-                new VTXFile(vtxStream, mdl, new VVDFile(vvdStream, mdl));
+                vtxFile = new VTXFile(vtxStream, mdl, new VVDFile(vvdStream, mdl));
             }
         }
         public override UnityEngine.Object CreateAsset(ResourceManager.ImportFlags importFlags = 0, bool saveChildrenToAssets = false)

@@ -61,7 +61,7 @@ namespace USource.Converters
             System.IO.Directory.CreateDirectory(absolutePath.Remove(lastSlash, absolutePath.Length - lastSlash));
 
         }
-        public static Converter FromLocation(Location location, IResourceProvider provider, System.IO.Stream assetStream, ImportFlags flags = 0)
+        public static Converter FromLocation(Location location, System.IO.Stream assetStream, ImportFlags flags = 0)
         {
             Converter converter;
             string extension = System.IO.Path.GetExtension(location.SourcePath);
@@ -69,23 +69,31 @@ namespace USource.Converters
             {
                 case ".mdl":
 
+                    bool TryGetStream(string path, out Stream stream)
+                    {
+                        stream = null;
+                        if (location.ResourceProvider.TryGetFile(path, out stream))
+                            return true;
+
+                        return false;
+                    }
 
                     // Attempt to load triangle/vertex info
 
-                    //// VVD (vertices)
-                    //string vvdPath = location.SourcePath.Replace(".mdl", ".vvd");
-                    //TryGetStream(vvdPath, out Stream vvdStream);
+                    // VVD (vertices)
+                    string vvdPath = location.SourcePath.Replace(".mdl", ".vvd");
+                    TryGetStream(vvdPath, out Stream vvdStream);
 
-                    //// VTX (Triangles)
-                    //string vtxPath = location.SourcePath.Replace(".mdl", ".vtx");
-                    //if (TryGetStream(vtxPath, out Stream vtxStream) == false)
-                    //    if (TryGetStream(vtxPath.Replace(".vtx", ".dx90.vtx"), out vtxStream) == false)
-                    //        TryGetStream(vtxPath.Replace(".vtx", ".dx80.vtx"), out vtxStream);
+                    // VTX (Triangles)
+                    string vtxPath = location.SourcePath.Replace(".mdl", ".vtx");
+                    if (TryGetStream(vtxPath, out Stream vtxStream) == false)
+                        if (TryGetStream(vtxPath.Replace(".vtx", ".dx90.vtx"), out vtxStream) == false)
+                            TryGetStream(vtxPath.Replace(".vtx", ".dx80.vtx"), out vtxStream);
 
-                    //// Physics model
-                    //TryGetStream(location.SourcePath.Replace(".mdl", ".phy"), out Stream physStream);
+                    // Physics model
+                    TryGetStream(location.SourcePath.Replace(".mdl", ".phy"), out Stream physStream);
 
-                    converter = new Converters.Model(location.SourcePath, assetStream, null, null, null);
+                    converter = new Converters.Model(location.SourcePath, assetStream, vvdStream, vtxStream, physStream);
 
                     //physStream?.Close();
                     //vvdStream?.Close();

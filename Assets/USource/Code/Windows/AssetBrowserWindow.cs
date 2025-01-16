@@ -95,6 +95,11 @@ namespace USource.Windows
                     //rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(preview);
                 }
             };
+            rootVisualElement.Q<Button>("refresh").clicked += () =>
+            {
+                USource.Init();
+                RefreshListView();
+            };
 
             //rootVisualElement.Q<Button>("import").clicked += () =>
             //{
@@ -163,7 +168,7 @@ namespace USource.Windows
             //rootView.Rebuild();
             rootView.RefreshItems();
 
-            rootVisualElement.Q<Label>("header").text = $"{entryIndices.Count}/{entries.Count} assets found";
+            rootVisualElement.Q("header").Q<Label>().text = $"{entryIndices.Count}/{entries.Count} assets found";
         }
         bool TryLoadAsset(string name, string[] folders, out VisualTreeAsset asset)
         {

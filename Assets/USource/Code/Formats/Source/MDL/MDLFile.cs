@@ -47,7 +47,7 @@ namespace USource.Formats.Source.MDL
                 FileStream.ReadType(ref MDL_Header);
 
                 if (MDL_Header.id != 0x54534449)
-                    throw new FileLoadException("File signature does not match 'IDST'");
+                   throw new FileLoadException("File signature does not match 'IDST'");
 
                 //Bones
                 MDL_StudioBones = new mstudiobone_t[MDL_Header.bone_count];

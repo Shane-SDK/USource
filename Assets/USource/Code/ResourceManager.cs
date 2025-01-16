@@ -1,15 +1,8 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using USource.Converters;
-using JetBrains.Annotations;
-using UnityEditor.VersionControl;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+using System.Diagnostics;
 
 namespace USource
 {
@@ -31,7 +24,7 @@ namespace USource
         Dictionary<Location, UnityEngine.Object> objectCache = new();
         public ResourceManager()
         {
-            CreateResourceProviders();
+            Refresh();
         }
         void CreateResourceProviders()
         {
@@ -118,6 +111,11 @@ namespace USource
             }
 
             //Debug.Log($"Found {resourceProviders.Count} resource providers");
+        }
+        public void Refresh()
+        {
+            objectCache = new();
+            CreateResourceProviders();
         }
         public bool TryFindResourceProvider(Location location, out IResourceProvider provider)
         {
@@ -223,19 +221,19 @@ namespace USource
                 if (GetUnityObjectFromCache(dependency, out unityObject, true))  // Asset exists in cache
                     continue;
 
-                // Asset hasen't been made at this po int, create the asset and cache it
+                // Asset hasen't been made at this point, create the asset and cache it
 
                 // Find a resource provider that has the data
                 if (((dependencies[0].ResourceProvider != null && dependencies[0].ResourceProvider.TryGetFile(dependency.SourcePath, out Stream stream)) ||  // Does parent asset have the file
-                    TryFindResourceProviderOpenFile(location, out _, out stream)) == false)  // Does any resource provider have the file
+                    TryFindResourceProviderOpenFile(dependency, out _, out stream)) == false)  // Does any resource provider have the file
                     continue;  // Neither methods gave the file
 
 
                 // create object and store in cache
-                Converter converter = Converter.FromLocation(location, null, stream);
-                unityObject = converter.CreateAsset(default, true);
+                Converter converter = Converter.FromLocation(dependency, stream);
+                unityObject = converter.CreateAsset(ImportFlags.Geometry, false);
                 if (unityObject != null)
-                    Cache(location, unityObject);
+                    Cache(dependency, unityObject);
 
                 stream.Close();
             }

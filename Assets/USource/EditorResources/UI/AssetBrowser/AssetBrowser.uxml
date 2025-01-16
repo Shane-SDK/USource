@@ -4,7 +4,10 @@
     <ui:VisualElement name="root" class="box-out">
         <ui:VisualElement name="upperWindow" style="flex-grow: 1;">
             <ui:VisualElement name="content" class="box-in">
-                <ui:Label tabindex="-1" text="Assets Found: 10/10000" parse-escape-sequences="true" display-tooltip-when-elided="true" name="header" class="box-out" />
+                <ui:VisualElement name="header" class="header box-out">
+                    <ui:Label tabindex="-1" parse-escape-sequences="true" display-tooltip-when-elided="true" />
+                    <ui:Button text="Refresh" parse-escape-sequences="true" display-tooltip-when-elided="true" name="refresh" />
+                </ui:VisualElement>
                 <ui:ListView focusable="true" selection-type="Multiple" show-foldout-header="false" binding-path="list" virtualization-method="FixedHeight" fixed-item-height="15" />
             </ui:VisualElement>
             <ui:VisualElement name="preview" class="box-in" style="flex-shrink: 0;" />

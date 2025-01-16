@@ -17,10 +17,11 @@ namespace USource.SourceAsset
         public void GetDependencies(Stream stream, List<Location> depdendencies)
         {
             depdendencies.Add(location);
-            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vvd"), Location.Type.Source, location.ResourceProvider));
-            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vtx"), Location.Type.Source, location.ResourceProvider));
-            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".sw.vtx"), Location.Type.Source, location.ResourceProvider));
-            depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".phy"), Location.Type.Source, location.ResourceProvider));
+            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vvd"), Location.Type.Source, location.ResourceProvider));
+            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".vtx"), Location.Type.Source, location.ResourceProvider));
+            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".sw.vtx"), Location.Type.Source, location.ResourceProvider));
+            //depdendencies.Add(new Location(location.SourcePath.Replace(".mdl", ".phy"), Location.Type.Source, location.ResourceProvider));
+            stream.Position = 0;
             UReader reader = new UReader(stream);
             studiohdr_t header = default;
             reader.ReadType(ref header);
