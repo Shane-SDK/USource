@@ -15,26 +15,31 @@ namespace USource.Converters
 {
     public class Texture : Converter
     {
+        public enum ImportOptions
+        {
+            Normal,
+            Grayscale,
+        }
         UnityEngine.Texture2D texture;
         VTFFile vtf;
-        readonly ImportFlags importFlags;
+        readonly ImportOptions importFlags;
         public TextureWrapMode wrapMode = TextureWrapMode.Repeat;
         public bool mipmaps = true;
         public int maxSize = 1024;
-        public Texture(string sourcePath, System.IO.Stream stream, ImportFlags importFlags, int maxSize = 1024) : base(sourcePath, stream)
+        public Texture(string sourcePath, System.IO.Stream stream, ImportOptions importFlags, int maxSize = 1024) : base(sourcePath, stream)
         {
             vtf = new VTFFile(stream);
             this.importFlags = importFlags;
             this.maxSize = maxSize;
         }
-        public override UnityEngine.Object CreateAsset(ResourceManager.ImportFlags importFlags = 0, bool saveChildrenToAssets = false)
+        public override UnityEngine.Object CreateAsset()
         {
             // Create texture object
             Texture2D unityTexture;
 
             // Check if original VTF format had an alpha channel
             bool hasAlpha = VTFImageFormatInfo.FromFormat(vtf.HighResImageFormat).AlphaBitsPerPixel > 0;
-            bool isNormal = this.importFlags.HasFlag(ResourceManager.ImportFlags.Normal);
+            bool isNormal = this.importFlags.HasFlag(ImportOptions.Normal);
             TextureFormat format = (hasAlpha || isNormal) ? TextureFormat.RGBA32 : TextureFormat.RGB24;
             unityTexture = new Texture2D(vtf.Images[0, 0].width, vtf.Images[0, 0].height, format, mipmaps, isNormal, true);
             unityTexture.wrapMode = wrapMode;

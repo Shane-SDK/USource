@@ -8,16 +8,6 @@ namespace USource
 {
     public class ResourceManager
     {
-        [System.Flags]
-        public enum ImportFlags
-        {
-            Normal = 1 << 0,
-            Skybox = 1 << 1,
-            Hitboxes = 1 << 2,
-            Animations = 1 << 3,
-            Physics = 1 << 4,
-            Geometry = 1 << 5,
-        }
         public List<IResourceProvider> ResourceProviders { get { return resourceProviders; } }
         List<IResourceProvider> resourceProviders = new List<IResourceProvider>();
         public IReadOnlyDictionary<Location, UnityEngine.Object> ObjectCache => objectCache;
@@ -231,7 +221,7 @@ namespace USource
 
                 // create object and store in cache
                 Converter converter = Converter.FromLocation(dependency, stream);
-                unityObject = converter.CreateAsset(ImportFlags.Geometry, false);
+                unityObject = converter.CreateAsset();
                 if (unityObject != null)
                     Cache(dependency, unityObject);
 
@@ -246,12 +236,23 @@ namespace USource
             // todo -- prioritize certain resource locations???
             objectCache[location.CopyNoResourceLocation()] = obj;
         }
-        bool GetUnityObjectFromCache(Location location, out UnityEngine.Object obj, bool useResourceProvider = false)
+        public bool GetUnityObjectFromCache(Location location, out UnityEngine.Object obj, bool useResourceProvider = false)
         {
             if (useResourceProvider && objectCache.TryGetValue(location, out obj))
                 return true;
 
             return objectCache.TryGetValue(location.CopyNoResourceLocation(), out obj);
+        }
+        public bool GetUnityObjectFromCache<T>(Location location, out T castObject, bool useResourceProvider = false) where T : UnityEngine.Object 
+        {
+            if (GetUnityObjectFromCache(location, out UnityEngine.Object obj) && obj is T)
+            {
+                castObject = (T)obj;
+                return true;
+            }
+
+            castObject = null;
+            return false;
         }
     }
 }

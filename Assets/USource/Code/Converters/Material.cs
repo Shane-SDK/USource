@@ -64,7 +64,7 @@ namespace USource.Converters
             if (vmt.ContainsParma("%CompileSkip") || vmt.ContainsParma("%CompileHint") || vmt.ContainsParma("%CompileLadder"))
                 flags |= MaterialFlags.Invisible | MaterialFlags.NoShadows | MaterialFlags.NonSolid;
         }
-        public override UnityEngine.Object CreateAsset(ResourceManager.ImportFlags importFlags = 0, bool saveChildrenToAssets = false)
+        public override UnityEngine.Object CreateAsset()
         {
             // Check if this is including a material and just return that
             //if (vmt.TryGetValue("include", out string includedMaterialPath))

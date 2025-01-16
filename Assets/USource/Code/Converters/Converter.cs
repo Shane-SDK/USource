@@ -50,7 +50,7 @@ namespace USource.Converters
         {
             this.sourcePath = sourcePath;
         }
-        public abstract UnityEngine.Object CreateAsset(ResourceManager.ImportFlags importFlags = 0, bool inlineMode = false);
+        public abstract UnityEngine.Object CreateAsset();
         public abstract UnityEngine.Texture2D CreatePreviewTexture();
         public virtual IEnumerable<string> GetSourceAssetDependencies() { return Enumerable.Empty<string>(); }
         public virtual void SaveToAssetDatabase(UnityEngine.Object obj)
@@ -61,7 +61,7 @@ namespace USource.Converters
             System.IO.Directory.CreateDirectory(absolutePath.Remove(lastSlash, absolutePath.Length - lastSlash));
 
         }
-        public static Converter FromLocation(Location location, System.IO.Stream assetStream, ImportFlags flags = 0)
+        public static Converter FromLocation(Location location, System.IO.Stream assetStream)
         {
             Converter converter;
             string extension = System.IO.Path.GetExtension(location.SourcePath);
@@ -93,17 +93,17 @@ namespace USource.Converters
                     // Physics model
                     TryGetStream(location.SourcePath.Replace(".mdl", ".phy"), out Stream physStream);
 
-                    converter = new Converters.Model(location.SourcePath, assetStream, vvdStream, vtxStream, physStream);
+                    converter = new Converters.Model(location.SourcePath, assetStream, vvdStream, vtxStream, physStream, Model.ImportOptions.Geometry);
 
-                    //physStream?.Close();
-                    //vvdStream?.Close();
-                    //vtxStream?.Close();
+                    physStream?.Close();
+                    vvdStream?.Close();
+                    vtxStream?.Close();
                     break;
                 case ".vmt":
                     converter = new Converters.Material(location.SourcePath, assetStream);
                     break;
                 case ".vtf":
-                    converter = new Converters.Texture(location.SourcePath, assetStream, flags);
+                    converter = new Converters.Texture(location.SourcePath, assetStream, default);
                     break;
                 default:
                     converter = null;

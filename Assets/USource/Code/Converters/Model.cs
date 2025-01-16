@@ -17,6 +17,13 @@ namespace USource.Converters
 {
     public class Model : Converter
     {
+        public enum ImportOptions
+        {
+            Geometry = 1 << 0,
+            Animations = 1 << 1,
+            Physics = 1 << 2,
+            Hitboxes = 1 << 3,
+        }
         public readonly static VertexAttributeDescriptor[] staticVertexDescriptor = new VertexAttributeDescriptor[]
         {
             new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
@@ -38,18 +45,20 @@ namespace USource.Converters
         };
         public Formats.Source.MDL.MDLFile mdl;
         public List<AnimationClip> clips;
-        VTXFile vtxFile;
-        public Model(string sourcePath, Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream) : base(sourcePath, stream)
+        public readonly ImportOptions importOptions;
+        public Model(string sourcePath, Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream, ImportOptions importOptions) : base(sourcePath, stream)
         {
             stream.Position = 0;
             mdl = new MDLFile(stream, physStream, true);
 
             if (vvdStream != null && vtxStream != null)
             {
-                vtxFile = new VTXFile(vtxStream, mdl, new VVDFile(vvdStream, mdl));
+                new VTXFile(vtxStream, mdl, new VVDFile(vvdStream, mdl));
             }
+
+            this.importOptions = importOptions;
         }
-        public override UnityEngine.Object CreateAsset(ResourceManager.ImportFlags importFlags = 0, bool saveChildrenToAssets = false)
+        public override UnityEngine.Object CreateAsset()
         {
             bool isStatic = mdl.MDL_Header.flags.HasFlag(StudioHDRFlags.STUDIOHDR_FLAGS_STATIC_PROP);
 
@@ -102,7 +111,7 @@ namespace USource.Converters
                 }
             }
 
-            if (importFlags.HasFlag(ResourceManager.ImportFlags.Hitboxes) && mdl.MDL_Hitboxsets != null)
+            if (importOptions.HasFlag(ImportOptions.Hitboxes) && mdl.MDL_Hitboxsets != null)
             {
                 for (Int32 hitboxsetID = 0; hitboxsetID < mdl.MDL_Header.hitbox_count; hitboxsetID++)
                 {
@@ -123,7 +132,7 @@ namespace USource.Converters
                 }
             }
 
-            if (importFlags.HasFlag(ResourceManager.ImportFlags.Geometry) && mdl.meshExist)
+            if (importOptions.HasFlag(ImportOptions.Geometry) && mdl.meshExist)
             {
                 // Merge body groups into one mesh
 
@@ -201,16 +210,16 @@ namespace USource.Converters
                             submesh.Item1.Add(Model.IndicesPerLod[0][meshID][i] + indexOffset);
                         }
 
-                        //// Load material
-                        //for (Int32 DirID = 0; DirID < mdl.MDL_TDirectories.Length; DirID++)
-                        //{
-                        //    string MaterialPath = "materials/" + mdl.MDL_TDirectories[DirID] + mdl.MDL_Textures[submeshIndex] + ".vmt";
-                        //    if (USource.ResourceManager.TryImportAsset(new Location(MaterialPath, Location.Type.Source), out UnityEngine.Material resource))
-                        //    {
-                        //        materials.Add(resource);
-                        //        break;
-                        //    }
-                        //}
+                        // Load material
+                        for (Int32 DirID = 0; DirID < mdl.MDL_TDirectories.Length; DirID++)
+                        {
+                            string sourceMaterialPath = "materials/" + mdl.MDL_TDirectories[DirID] + mdl.MDL_Textures[submeshIndex] + ".vmt";
+                            if (USource.ResourceManager.GetUnityObjectFromCache(new Location(sourceMaterialPath, Location.Type.Source), out UnityEngine.Material resource))
+                            {
+                                materials.Add(resource);
+                                break;
+                            }
+                        }
                     }
 
                     indexOffset = vertices.Count;
@@ -288,7 +297,7 @@ namespace USource.Converters
                 renderer.sharedMaterials = materials.ToArray();
             }
 
-            if (importFlags.HasFlag(ResourceManager.ImportFlags.Animations) && mdl.MDL_SeqDescriptions != null)
+            if (importOptions.HasFlag(ImportOptions.Animations) && mdl.MDL_SeqDescriptions != null)
             {
                 clips = new List<AnimationClip>(mdl.MDL_SeqDescriptions.Length);
                 for (Int32 seqID = 0; seqID < mdl.MDL_SeqDescriptions.Length; seqID++)
@@ -397,7 +406,7 @@ namespace USource.Converters
                 }
             }
 
-            if (importFlags.HasFlag(ResourceManager.ImportFlags.Physics) && mdl.HasPhysics)
+            if (importOptions.HasFlag(ImportOptions.Physics) && mdl.HasPhysics)
             {
                 for (int s = 0; s < mdl.physSolids.Length; s++)
                 {

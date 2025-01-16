@@ -41,7 +41,12 @@ namespace USource.AssetImporters
 
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
 
-            Model model = new Model(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream);
+            Model.ImportOptions flags = default;
+            if (importHitboxes) flags |= Model.ImportOptions.Hitboxes;
+            if (importPhysics) flags |= Model.ImportOptions.Physics;
+            if (importAnimations) flags |= Model.ImportOptions.Animations;
+            if (importGeometry) flags |= Model.ImportOptions.Geometry;
+            Model model = new Model(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream, flags);
             foreach (string sourcePathDependency in model.GetSourceAssetDependencies())
             {
                 Location dependentLocation = new Location(sourcePathDependency, Location.Type.Source);
@@ -49,13 +54,8 @@ namespace USource.AssetImporters
                 ctx.DependsOnArtifact(dependentLocation.AssetPath);
             }
 
-            ResourceManager.ImportFlags flags = default;
-            if (importHitboxes) flags |= ResourceManager.ImportFlags.Hitboxes;
-            if (importPhysics) flags |= ResourceManager.ImportFlags.Physics;
-            if (importAnimations) flags |= ResourceManager.ImportFlags.Animations;
-            if (importGeometry) flags |= ResourceManager.ImportFlags.Geometry;
 
-            GameObject obj = model.CreateAsset(flags) as GameObject;
+            GameObject obj = model.CreateAsset() as GameObject;
 
             ctx.AddObjectToAsset("root", obj);
             if (obj.TryGetComponent(out MeshFilter filter))
