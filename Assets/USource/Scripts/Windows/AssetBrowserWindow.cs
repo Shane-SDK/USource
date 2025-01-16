@@ -66,6 +66,8 @@ namespace USource.Windows
             rootView.makeItem = () =>
             {
                 VisualElement element = entryAsset.Instantiate();
+                element.style.height = new StyleLength(StyleKeyword.Auto);
+                element.style.flexShrink = 1;
                 return element;
             };
             rootView.bindItem = (VisualElement element, int index) =>
