@@ -179,7 +179,7 @@ namespace USource
 
             return unityObject != null;
         }
-        public void ImportSourceAssetToAssetDatabase(Location location)
+        public void ImportSourceAssetToAssetDatabase(Location location, bool reimportExistingDependencies = true)
         {
 #if UNITY_EDITOR
             /*
@@ -205,8 +205,12 @@ namespace USource
             for (int i = depList.Count - 1; i >= 0; i--)
             {
                 Location dependency = depList[i];
+
                 int reverseIndex = (depList.Count - 1 - i);
                 UnityEditor.EditorUtility.DisplayProgressBar($"Importing {location.SourcePath}", $"[2/2] Importing {dependency.SourcePath} ({reverseIndex} / {depList.Count - 1})", (float)(reverseIndex) / (depList.Count - 1));
+                if (!reimportExistingDependencies && (UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(dependency.AssetPath) != null))  // If dependency has already been imported
+                    continue;
+
                 Stream assetStream = null;
                 if (!(depList[i].ResourceProvider != null && depList[i].ResourceProvider.TryGetFile(dependency.SourcePath, out assetStream)) &&  // Couldn't find data in immediate location
                     !(TryFindResourceProviderOpenFile(dependency, out _, out assetStream)))  // Data isn't in providers
@@ -277,7 +281,7 @@ namespace USource
 
             stream = null;
             return false;
-        }
+        } 
         //public bool TryResolveMaterialPath(string materialPath, out Location resolvedMaterial)
         //{
         //    // materials/maps/beta house map/building_template/building_template002b_2219_-232_207.vmt      <- CONVERT FROM THIS
@@ -339,5 +343,11 @@ namespace USource
 
         //    return false;
         //}
+    }
+    public enum LoadOption
+    {
+        Cache,
+        AssetDatabase,
+        UserFiles
     }
 }

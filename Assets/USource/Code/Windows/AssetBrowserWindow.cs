@@ -103,7 +103,7 @@ namespace USource.Windows
                 foreach (int index in rootView.selectedIndices)
                 {
                     Location location = entries[entryIndices[index]];
-                    USource.ResourceManager.ImportSourceAssetToAssetDatabase(location);
+                    USource.ResourceManager.ImportSourceAssetToAssetDatabase(location, false);
                 }
 
                 AssetDatabase.RefreshSettings();

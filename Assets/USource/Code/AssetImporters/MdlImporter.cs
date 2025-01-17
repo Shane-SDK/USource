@@ -8,18 +8,15 @@ using System.IO;
 using USource.Converters;
 using USource.SourceAsset;
 using System.Linq;
+using UnityEngine.Rendering;
 
 namespace USource.AssetImporters
 {
     [ScriptedImporter(0, "mdl")]
     public class MdlImporter : ScriptedImporter
     {
-        [HideInInspector]
-        public bool importHitboxes = false;
-        public bool importPhysics = true;
-        public bool importGeometry = true;
-        [Header("WARNING: Animation Support is currently buggy and underdeveloped!")]
-        public bool importAnimations = false;
+        public Converters.Model.ImportOptions importOptions = Model.ImportOptions.Physics | Model.ImportOptions.Geometry;
+        public ShadowCastingMode shadowCastingMode = ShadowCastingMode.On;
         public override void OnImportAsset(AssetImportContext ctx)
         {
             // See if accompanying files exist (phys, triangles, vertices)
@@ -50,12 +47,8 @@ namespace USource.AssetImporters
             mdlStream.Close();
             mdlStream = File.OpenRead(ctx.assetPath);
 
-            Model.ImportOptions flags = default;
-            if (importHitboxes) flags |= Model.ImportOptions.Hitboxes;
-            if (importPhysics) flags |= Model.ImportOptions.Physics;
-            if (importAnimations) flags |= Model.ImportOptions.Animations;
-            if (importGeometry) flags |= Model.ImportOptions.Geometry;
-            Model model = new Model(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream, flags);
+            Model model = new Model(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream, importOptions);
+            model.shadowCastingMode = shadowCastingMode;
             GameObject obj = model.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as GameObject;
 
             ctx.AddObjectToAsset("root", obj);

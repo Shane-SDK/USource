@@ -17,13 +17,15 @@ namespace USource.Converters
 {
     public class Model : Converter
     {
+        [System.Flags]
         public enum ImportOptions
         {
             Geometry = 1 << 0,
             Animations = 1 << 1,
             Physics = 1 << 2,
-            Hitboxes = 1 << 3,
+            Hitboxes = 1 << 3
         }
+        public ShadowCastingMode shadowCastingMode = ShadowCastingMode.On;
         public readonly static VertexAttributeDescriptor[] staticVertexDescriptor = new VertexAttributeDescriptor[]
         {
             new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
@@ -292,6 +294,20 @@ namespace USource.Converters
                     MeshFilter.sharedMesh = mesh;
                 }
 
+                //foreach (UnityEngine.Material mat in materials)
+                //{
+                //    if (mat.GetFloat("_AlphaClip") == 1 || mat.GetFloat("_Surface") == 0)
+                //    {
+                //        castShadows = false;
+                //        break;
+                //    }
+                //}
+
+                renderer.shadowCastingMode = shadowCastingMode;
+
+#if UNITY_EDITOR
+                UnityEditor.Unwrapping.GenerateSecondaryUVSet(mesh);
+#endif
                 mesh.RecalculateBounds();
                 mesh.Optimize();
                 mesh.UploadMeshData(true);
