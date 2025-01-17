@@ -50,7 +50,7 @@ namespace USource.Converters
         {
             this.sourcePath = sourcePath;
         }
-        public abstract UnityEngine.Object CreateAsset(ImportMode importMode = ImportMode.CreateAndCache);
+        public abstract UnityEngine.Object CreateAsset(ImportContext ctx);
         public static Converter FromLocation(Location location, System.IO.Stream assetStream)
         {
             Converter converter;

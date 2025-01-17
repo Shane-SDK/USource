@@ -17,7 +17,7 @@ namespace USource.SourceAsset
         {
             this.location = location;
         }
-        public void GetDependencies(Stream stream, List<Location> dependencies, ImportMode mode = ImportMode.CreateAndCache)
+        public void GetDependencies(Stream stream, DependencyTree dependencies, bool recursive, ImportMode mode = ImportMode.CreateAndCache)
         {
             dependencies.Add(location);
             VMFParser.VMF vmf = new VMFParser.VMF(ReadLines(() => stream, Encoding.UTF8).ToArray());  
@@ -34,7 +34,7 @@ namespace USource.SourceAsset
                         dependencySet.Add(location);
                         if (USource.ResourceManager.GetStream(location, out Stream depStream, mode))
                         {
-                            new MdlAsset(location).GetDependencies(depStream, dependencies);
+                            new MdlAsset(location).GetDependencies(depStream, dependencies, recursive);
                         }
                     }
                 }
@@ -53,7 +53,7 @@ namespace USource.SourceAsset
                         dependencySet.Add(location);
                         if (USource.ResourceManager.GetStream(location, out Stream depStream, mode))
                         {
-                            new VmtAsset(location).GetDependencies(depStream, dependencies);
+                            new VmtAsset(location).GetDependencies(depStream, dependencies, recursive);
                         }
                     }
                 }

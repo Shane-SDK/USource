@@ -15,9 +15,9 @@ namespace USource.Converters
             this.stream = stream;
         }
 
-        public override UnityEngine.Object CreateAsset(ImportMode importMode = ImportMode.CreateAndCache)
+        public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
-            return VMF.VMF.CreateFromVMF(stream, importMode);
+            return VMF.VMF.CreateFromVMF(stream, ctx);
         }
     }
 }

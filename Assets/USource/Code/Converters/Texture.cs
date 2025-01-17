@@ -32,7 +32,7 @@ namespace USource.Converters
             this.importFlags = importFlags;
             this.maxSize = maxSize;
         }
-        public override UnityEngine.Object CreateAsset(ImportMode importMode)
+        public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             // Create texture object
             Texture2D unityTexture;

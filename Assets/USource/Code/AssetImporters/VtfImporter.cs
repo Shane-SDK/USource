@@ -27,7 +27,7 @@ namespace USource.AssetImporters
             Converters.Texture texture = new Converters.Texture(sourcePath, stream, normalMap ? Converters.Texture.ImportOptions.Normal : 0, maxSize);
             texture.mipmaps = mipmaps;
             texture.wrapMode = wrapMode;
-            UnityEngine.Texture obj = texture.CreateAsset( ImportMode.AssetDatabase ) as UnityEngine.Texture;
+            UnityEngine.Texture obj = texture.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as UnityEngine.Texture;
             ctx.AddObjectToAsset("texture", obj);
             ctx.SetMainObject(obj);
 

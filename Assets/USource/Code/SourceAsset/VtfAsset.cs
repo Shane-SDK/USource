@@ -12,7 +12,7 @@ namespace USource.SourceAsset
         {
             location = loc;
         }
-        public void GetDependencies(Stream stream, List<Location> depdendencies, ImportMode mode = ImportMode.CreateAndCache)
+        public void GetDependencies(Stream stream, DependencyTree depdendencies, bool recursive, ImportMode mode = ImportMode.CreateAndCache)
         {
             depdendencies.Add(location);
         }

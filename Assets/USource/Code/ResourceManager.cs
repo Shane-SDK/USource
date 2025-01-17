@@ -145,14 +145,15 @@ namespace USource
             // Get list of dependencies
             ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
             System.IO.Stream stream = location.ResourceProvider[location];
-            List<Location> dependencies = new();
-            sourceAsset.GetDependencies(stream, dependencies);
+            DependencyTree dependencies = new(location);
+            sourceAsset.GetDependencies(stream, dependencies, true, ImportMode.CreateAndCache);
+            List<Location> depList = dependencies.RecursiveChildren.ToList();
             // go in reverse order
             // ensure every dependency exists before attempting to create most-dependent object
-            for (int i = dependencies.Count - 1; i >= 0; i--)
+            for (int i = depList.Count - 1; i >= 0; i--)
             {
                 // check if object already exists in cache
-                Location dependency = dependencies[i];
+                Location dependency = depList[i];
                 if (dependency.GetAssetType() == AssetType.None)  // Not a supported format
                     continue;
 
@@ -162,14 +163,14 @@ namespace USource
                 // Asset hasn't been made at this point, create the asset and cache it
 
                 // Find a resource provider that has the data
-                if (((dependencies[0].ResourceProvider != null && dependencies[0].ResourceProvider.TryGetFile(dependency.SourcePath, out stream)) ||  // Does parent asset have the file
+                if (((depList[0].ResourceProvider != null && depList[0].ResourceProvider.TryGetFile(dependency.SourcePath, out stream)) ||  // Does parent asset have the file
                     TryFindResourceProviderOpenFile(dependency, out _, out stream)) == false)  // Does any resource provider have the file
                     continue;  // Neither methods gave the file
 
 
                 // create object and store in cache
                 Converter converter = Converter.FromLocation(dependency, stream);
-                unityObject = converter.CreateAsset( ImportMode.CreateAndCache );
+                unityObject = converter.CreateAsset( new ImportContext(ImportMode.CreateAndCache) );
                 if (unityObject != null)
                     Cache(dependency, unityObject);
 
@@ -189,16 +190,17 @@ namespace USource
             if (!location.ResourceProvider.TryGetFile(location.SourcePath, out Stream stream) && !TryFindResourceProviderOpenFile(location, out _, out stream))  // Cannot locate file
                 return;
 
-            List<Location> dependencies = new();
+            DependencyTree dependencies = new(location);
             ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
-            sourceAsset.GetDependencies(stream, dependencies);
+            sourceAsset.GetDependencies(stream, dependencies, true, ImportMode.CreateAndCache);
+            List<Location> depList = dependencies.RecursiveChildren.ToList();
             stream.Close();
 
-            for (int i = dependencies.Count - 1; i >= 0; i--)
+            for (int i = depList.Count - 1; i >= 0; i--)
             {
-                Location dependency = dependencies[i];
+                Location dependency = depList[i];
                 Stream assetStream = null;
-                if (!(dependencies[i].ResourceProvider != null && dependencies[i].ResourceProvider.TryGetFile(dependency.SourcePath, out assetStream)) &&  // Couldn't find data in immediate location
+                if (!(depList[i].ResourceProvider != null && depList[i].ResourceProvider.TryGetFile(dependency.SourcePath, out assetStream)) &&  // Couldn't find data in immediate location
                     !(TryFindResourceProviderOpenFile(dependency, out _, out assetStream)))  // Data isn't in providers
                     continue;  // Data doesn't exist
 

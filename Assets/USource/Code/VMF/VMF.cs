@@ -23,8 +23,6 @@ namespace USource.VMF
     }
     public class VMF
     {
-        const string rMatchNumbers = @"[-+]?([0-9]*\.[0-9]+|[0-9]+)";
-        const string rMatchParentheses = @"\(([^()]+)\)";
         public static readonly string[] noRenderMaterials = new string[]
         {
             "materials/tools/toolsnodraw"
@@ -39,7 +37,7 @@ namespace USource.VMF
         };
 #if UNITY_EDITOR
         // Load VMF
-        public static GameObject CreateFromVMF(System.IO.Stream stream, ImportMode importMode = ImportMode.CreateAndCache)
+        public static GameObject CreateFromVMF(System.IO.Stream stream, ImportContext ctx)
         {
             GameObject vmfGO = GameObject.Find("VMF");
             {
@@ -125,7 +123,7 @@ namespace USource.VMF
                     //    location = resolvedMaterial;
                     //}
 
-                    if (USource.ResourceManager.GetUnityObject(location, out UnityEngine.Material resourceMaterial, importMode, true))
+                    if (USource.ResourceManager.GetUnityObject(location, out UnityEngine.Material resourceMaterial, ctx.ImportMode, true))
                     {
 #if UNITY_EDITOR
                         VmtImporter importer = AssetImporter.GetAtPath(location.AssetPath) as VmtImporter;
@@ -349,14 +347,14 @@ namespace USource.VMF
                     // Try to use a Prefab/Mdl for the GameObject, unless no model value is provided
                     GameObject entityGO = null;
                     if (block.TryGetValue("model", out string modelValue) &&
-                        USource.ResourceManager.GetUnityObject(new Location(modelValue, Location.Type.Source), out GameObject prefab, importMode))
+                        USource.ResourceManager.GetUnityObject(new Location(modelValue, Location.Type.Source), out GameObject prefab, ctx.ImportMode))
                     {
                         // Instantiate prefab
 #if UNITY_EDITOR
-                        if (importMode == ImportMode.AssetDatabase)
+                        if (ctx.ImportMode == ImportMode.AssetDatabase)
                             entityGO = UnityEditor.PrefabUtility.InstantiatePrefab(prefab, vmfGO.transform) as GameObject;
 #endif
-                        if (importMode == ImportMode.CreateAndCache)
+                        if (ctx.ImportMode == ImportMode.CreateAndCache)
                             entityGO = GameObject.Instantiate(prefab, vmfGO.transform);
 
                         entityGO.name = goName;
@@ -428,7 +426,7 @@ namespace USource.VMF
 
             void DoSkyStuff(string sourceSide, string unitySide)
             {
-                if (USource.ResourceManager.GetUnityObject(new Location($"materials/skybox/{skyMaterialName}{sourceSide}.vmt", Location.Type.Source), out UnityEngine.Material texResource, importMode, true))
+                if (USource.ResourceManager.GetUnityObject(new Location($"materials/skybox/{skyMaterialName}{sourceSide}.vmt", Location.Type.Source), out UnityEngine.Material texResource, ctx.ImportMode, true))
                 {
                     // Update texture importer to clamp texture
                     texResource.mainTexture.wrapMode = TextureWrapMode.Clamp;

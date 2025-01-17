@@ -13,16 +13,23 @@ namespace USource.SourceAsset
         {
             location = loc;
         }
-        public void GetDependencies(Stream stream, List<Location> depdendencies, ImportMode mode = ImportMode.CreateAndCache)
+        public void GetDependencies(Stream stream, DependencyTree tree, bool recursive, ImportMode mode = ImportMode.CreateAndCache)
         {
-            depdendencies.Add(location);
+            tree.Add(location);
             KeyValues keys = KeyValues.FromStream(stream);
             string shader = keys.Keys.First();
             KeyValues.Entry entry = keys[shader];
-            if (entry.ContainsKey("$basetexture"))
-                depdendencies.Add(new Location("materials/" + entry["$basetexture"] + ".vtf", Location.Type.Source, depdendencies[0].ResourceProvider));
-            if (entry.ContainsKey("$bumpmap"))
-                depdendencies.Add(new Location("materials/" + entry["$bumpmap"] + ".vtf", Location.Type.Source, depdendencies[0].ResourceProvider));
+            ProcessKey("$basetexture");
+            ProcessKey("$bumpmap");
+
+            void ProcessKey(string key)
+            {
+                if (entry.ContainsKey(key))
+                {
+                    Location loc = new Location("materials/" + entry[key] + ".vtf", Location.Type.Source, tree.Root.location.ResourceProvider);
+                    tree.Add(loc);
+                }
+            }
         }
     }
 }

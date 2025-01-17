@@ -8,6 +8,7 @@ using USource;
 using System.IO;
 using USource.Converters;
 using USource.SourceAsset;
+using System.Linq;
 
 namespace USource.AssetImporters
 {
@@ -20,18 +21,15 @@ namespace USource.AssetImporters
         {
             Stream stream = File.OpenRead(ctx.assetPath);
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase, null);
-            //ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
-            //List<Location> dependencies = new();
-            //sourceAsset.GetDependencies(stream, dependencies);
+            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            DependencyTree dependencies = new(location);
+            sourceAsset.GetDependencies(stream, dependencies, false);
 
-            //for (int i = dependencies.Count - 1; i >= 1; i--)  // Do not include location to this asset
-            //{
-            //    Location depenLocation = dependencies[i];
-            //    ctx.DependsOnArtifact(depenLocation.AssetPath);
-            //}
+            foreach (Location dependency in dependencies.GetImmediateChildren(false))
+                ctx.DependsOnArtifact(dependency.AssetPath);
 
-            //stream.Close();
-            //stream = File.OpenRead(ctx.assetPath);
+            stream.Close();
+            stream = File.OpenRead(ctx.assetPath);
 
             Converters.Material materialConverter = new Converters.Material(location.SourcePath, stream);
             flags = materialConverter.flags;
@@ -60,7 +58,7 @@ namespace USource.AssetImporters
                 }
             }
 
-            UnityEngine.Material obj = materialConverter.CreateAsset( ImportMode.AssetDatabase ) as UnityEngine.Material;
+            UnityEngine.Material obj = materialConverter.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as UnityEngine.Material;
             ctx.AddObjectToAsset("material", obj);
             ctx.SetMainObject(obj);
 

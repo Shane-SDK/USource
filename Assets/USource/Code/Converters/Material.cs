@@ -65,7 +65,7 @@ namespace USource.Converters
             if (vmt.ContainsParma("%CompileSkip") || vmt.ContainsParma("%CompileHint") || vmt.ContainsParma("%CompileLadder"))
                 flags |= MaterialFlags.Invisible | MaterialFlags.NoShadows | MaterialFlags.NonSolid;
         }
-        public override UnityEngine.Object CreateAsset(ImportMode importMode)
+        public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             // Check if this is including a material and just return that
             //if (vmt.TryGetValue("include", out string includedMaterialPath))
@@ -100,14 +100,14 @@ namespace USource.Converters
             {
                 string texturePath = $"materials/{value}.vtf";
                 Location location = new Location(texturePath, Location.Type.Source);
-                if (USource.ResourceManager.GetUnityObject<Texture2D>(location, out Texture2D texture, importMode))
+                if (USource.ResourceManager.GetUnityObject<Texture2D>(location, out Texture2D texture, ctx.ImportMode))
                     material.mainTexture = texture;
 
             }
 
             if (vmt.TryGetValue("$bumpmap", out string bumpString))
             {
-                if (USource.ResourceManager.GetUnityObject<Texture2D>(new Location($"materials/{bumpString}.vtf", Location.Type.Source), out Texture2D texture, importMode))
+                if (USource.ResourceManager.GetUnityObject<Texture2D>(new Location($"materials/{bumpString}.vtf", Location.Type.Source), out Texture2D texture, ctx.ImportMode))
                     material.SetTexture("_bumpMap", texture);
             }
 

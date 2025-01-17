@@ -18,19 +18,17 @@ namespace USource.AssetImporters
         {
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
             System.IO.Stream stream = System.IO.File.OpenRead(ctx.assetPath);
-            //List<Location> dependencies = new();
-            //ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
-            //sourceAsset.GetDependencies(stream, dependencies);
-            //for (int i = dependencies.Count - 1; i >= 1; i--)
-            //{
-            //    ctx.DependsOnArtifact(dependencies[i].AssetPath);
-            //}
+            DependencyTree dependencies = new(location);
+            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            sourceAsset.GetDependencies(stream, dependencies, false);
+            foreach (Location dependency in dependencies.GetImmediateChildren(false))
+                ctx.DependsOnArtifact(dependency.AssetPath);
 
-            //stream.Close();
-            //stream = System.IO.File.OpenRead(ctx.assetPath);
+            stream.Close();
+            stream = System.IO.File.OpenRead(ctx.assetPath);
 
             VmfConverter converter = new VmfConverter(location.SourcePath, stream);
-            UnityEngine.Object obj = converter.CreateAsset(ImportMode.AssetDatabase);
+            UnityEngine.Object obj = converter.CreateAsset(new ImportContext(ImportMode.AssetDatabase, ctx));
             ctx.AddObjectToAsset("level", obj);
             ctx.SetMainObject(obj);
         }

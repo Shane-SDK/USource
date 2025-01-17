@@ -58,7 +58,7 @@ namespace USource.Converters
 
             this.importOptions = importOptions;
         }
-        public override UnityEngine.Object CreateAsset(ImportMode importMode)
+        public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             bool isStatic = mdl.MDL_Header.flags.HasFlag(StudioHDRFlags.STUDIOHDR_FLAGS_STATIC_PROP);
 
@@ -215,7 +215,7 @@ namespace USource.Converters
                         for (Int32 DirID = 0; DirID < mdl.MDL_TDirectories.Length; DirID++)
                         {
                             string sourceMaterialPath = "materials/" + mdl.MDL_TDirectories[DirID] + mdl.MDL_Textures[submeshIndex] + ".vmt";
-                            if (USource.ResourceManager.GetUnityObject(new Location(sourceMaterialPath, Location.Type.Source), out UnityEngine.Material resource, importMode, true))
+                            if (USource.ResourceManager.GetUnityObject(new Location(sourceMaterialPath, Location.Type.Source), out UnityEngine.Material resource, ctx.ImportMode, true))
                             {
                                 materials.Add(resource);
                                 break;

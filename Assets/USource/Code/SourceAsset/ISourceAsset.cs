@@ -6,7 +6,7 @@ namespace USource.SourceAsset
 {
     public interface ISourceAsset
     {
-        public void GetDependencies(Stream stream, List<Location> dependencies, ImportMode mode = ImportMode.CreateAndCache);
+        public void GetDependencies(Stream stream, DependencyTree tree, bool recursive, ImportMode mode = ImportMode.CreateAndCache);
         public Location Location { get; }
         public static ISourceAsset FromLocation(Location location)
         {
