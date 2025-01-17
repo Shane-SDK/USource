@@ -483,7 +483,7 @@ namespace USource.Converters
                                 vertex.normal = vertex.normal.normalized;
                                 vertices[i] = vertex;
                             }
-                            mesh.name = $"{solid.boneName}.phy";
+                            mesh.name = $"{solid.boneName}-{p}.phy";
 
                             MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontNotifyMeshUsers;
 

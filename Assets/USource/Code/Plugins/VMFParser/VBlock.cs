@@ -58,24 +58,56 @@ namespace VMFParser
             value = (node as VProperty).Value;
             return true;
         }
-        public bool TryGetValue(string key, out UnityEngine.Vector3 vector)
+        public bool TryGetValue(string key, out float value)
         {
-            vector = default;
-            if (TryGetValue(key, out string vectorString))
-            {
-                System.Text.RegularExpressions.MatchCollection col = System.Text.RegularExpressions.Regex.Matches(vectorString, @"[-+]?([0-9]*\.[0-9]+|[0-9]+)");
-                if (col.Count >= 3)
-                {
-                    if (float.TryParse(col[0].Value, out float x) == false || float.TryParse(col[0].Value, out float y) == false || float.TryParse(col[0].Value, out float z) == false)
-                        return false;
+            value = default;
+            return TryGetValue(key, out string stringValue) && float.TryParse(stringValue, out value);
+        }
+        public bool TryGetValue(string key, out UnityEngine.Vector3 value)
+        {
+            value = default;
+            return TryGetValue(key, out string stringValue) && TryParseVector3(stringValue, out value);
+        }
+        public bool TryGetValue(string key, out UnityEngine.Vector4 value)
+        {
+            value = default;
+            return TryGetValue(key, out string stringValue) && TryParseVector4(stringValue, out value);
+        }
+        public static bool TryParseVector3(string stringValue, out UnityEngine.Vector3 vector3)
+        {
+            vector3 = default;
 
-                    vector = new UnityEngine.Vector3(x, y, z);
-                    return true;
-                }
+            string[] splitValues = stringValue.Split(' ');
+            if (splitValues.Length < 3)
+                return false;
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (float.TryParse(splitValues[i], out float floatValue))
+                    vector3[i] = floatValue;
+                else
+                    return false;
             }
 
-            return false;
+            return true;
         }
+        public static bool TryParseVector4(string stringValue, out UnityEngine.Vector4 vector3)
+        {
+            vector3 = default;
 
+            string[] splitValues = stringValue.Split(' ');
+            if (splitValues.Length < 4)
+                return false;
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (float.TryParse(splitValues[i], out float floatValue))
+                    vector3[i] = floatValue;
+                else
+                    return false;
+            }
+
+            return true;
+        }
     }
 }

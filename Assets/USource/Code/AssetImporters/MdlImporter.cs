@@ -40,16 +40,16 @@ namespace USource.AssetImporters
             TryGetStream(".vvd~", out Stream vvdStream);
 
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
-            List<Location> dependencies = new();
-            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
-            sourceAsset.GetDependencies(mdlStream, dependencies);
-            for (int i = dependencies.Count - 1; i >= 1; i--)
-            {
-                ctx.DependsOnArtifact(dependencies[i].AssetPath);
-            }
+            //List<Location> dependencies = new();
+            //ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            //sourceAsset.GetDependencies(mdlStream, dependencies);
+            //for (int i = dependencies.Count - 1; i >= 1; i--)
+            //{
+            //    ctx.DependsOnArtifact(dependencies[i].AssetPath);
+            //}
 
-            mdlStream.Close();
-            mdlStream = File.OpenRead(ctx.assetPath);
+            //mdlStream.Close();
+            //mdlStream = File.OpenRead(ctx.assetPath);
 
             Model.ImportOptions flags = default;
             if (importHitboxes) flags |= Model.ImportOptions.Hitboxes;

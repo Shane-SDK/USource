@@ -20,18 +20,18 @@ namespace USource.AssetImporters
         {
             Stream stream = File.OpenRead(ctx.assetPath);
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase, null);
-            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
-            List<Location> dependencies = new();
-            sourceAsset.GetDependencies(stream, dependencies);
+            //ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+            //List<Location> dependencies = new();
+            //sourceAsset.GetDependencies(stream, dependencies);
 
-            for (int i = dependencies.Count - 1; i >= 1; i--)  // Do not include location to this asset
-            {
-                Location depenLocation = dependencies[i];
-                ctx.DependsOnArtifact(depenLocation.AssetPath);
-            }
+            //for (int i = dependencies.Count - 1; i >= 1; i--)  // Do not include location to this asset
+            //{
+            //    Location depenLocation = dependencies[i];
+            //    ctx.DependsOnArtifact(depenLocation.AssetPath);
+            //}
 
-            stream.Close();
-            stream = File.OpenRead(ctx.assetPath);
+            //stream.Close();
+            //stream = File.OpenRead(ctx.assetPath);
 
             Converters.Material materialConverter = new Converters.Material(location.SourcePath, stream);
             flags = materialConverter.flags;
