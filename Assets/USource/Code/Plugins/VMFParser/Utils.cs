@@ -17,13 +17,13 @@ namespace VMFParser
             return line.Trim().StartsWith("\"") ? typeof(VProperty) : typeof(VBlock);
         }
 
-        public static IList<IVNode> ParseToBody(string[] body)
+        public static IList<IVNode> ParseToBody(IList<string> body)
         {
             IList<IVNode> newBody = new List<IVNode>();
             int depth = 0;
             var wasDeep = false;
             IList<string> nextBlock = null;
-            for (int i = 0; i < body.Length; i++)
+            for (int i = 0; i < body.Count; i++)
             {
                 var line = body[i].Trim();
 
@@ -145,7 +145,6 @@ namespace VMFParser
 
             return newBody;
         }
-
         public static IList<string> BodyToString(IList<IVNode> body)
         {
             IList<string> text = new List<string>();

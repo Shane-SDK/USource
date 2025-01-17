@@ -16,6 +16,7 @@ namespace USource.SourceAsset
                 case AssetType.Mdl: return new MdlAsset(location);
                 case AssetType.Vmt: return new VmtAsset(location);
                 case AssetType.Vtf: return new VtfAsset(location);
+                case AssetType.Vmf: return new VmfAsset(location);
             }
 
             return null;

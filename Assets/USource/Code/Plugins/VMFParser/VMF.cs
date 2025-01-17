@@ -53,11 +53,10 @@ namespace VMFParser
         }
 
         /// <summary>Initializes a new instance of the <see cref="VMF"/> class from the VMF text.</summary>
-        public VMF(string[] text)
+        public VMF(IList<string> text)
         {
             Body = Utils.ParseToBody(text);
         }
-
         public string ToVMFString()
         {
             return string.Join(Environment.NewLine, ToVMFStrings());

@@ -55,6 +55,10 @@ namespace USource.Converters
         {
             Converter converter;
             string extension = System.IO.Path.GetExtension(location.SourcePath);
+
+            if (location.ResourceProvider == null && USource.ResourceManager.TryFindResourceProvider(location, out IResourceProvider provider))
+                location = new Location(location.SourcePath, Location.Type.Source, provider);
+
             switch (extension)
             {
                 case ".mdl":
@@ -94,6 +98,9 @@ namespace USource.Converters
                     break;
                 case ".vtf":
                     converter = new Converters.Texture(location.SourcePath, assetStream, default);
+                    break;
+                case ".vmf":
+                    converter = new VmfConverter(location.SourcePath, assetStream);
                     break;
                 default:
                     converter = null;

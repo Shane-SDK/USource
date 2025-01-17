@@ -92,6 +92,8 @@ namespace USource
                 case ".mdl": return AssetType.Mdl;
                 case ".vmt": return AssetType.Vmt;
                 case ".vtf": return AssetType.Vtf;
+                case ".vmf": return AssetType.Vmf;
+                case ".bsp": return AssetType.Bsp;
             }
 
             return AssetType.None;
@@ -100,12 +102,5 @@ namespace USource
         {
             return new Location(SourcePath, Type.Source, null);
         }
-    }
-    public enum AssetType
-    {
-        None,
-        Mdl,
-        Vtf,
-        Vmt,
     }
 }

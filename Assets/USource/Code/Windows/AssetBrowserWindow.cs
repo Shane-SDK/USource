@@ -17,8 +17,9 @@ namespace USource.Windows
             ".vmt",
             ".vtf",
             ".mdl",
-            ".wav",
-            ".mp3"
+            ".vmf",
+            //".wav",
+            //".mp3"
         };
         static readonly HashSet<string> extensionSet = new();
         [MenuItem("USource/Asset Browser")]
@@ -86,6 +87,9 @@ namespace USource.Windows
                 if (USource.ResourceManager.CreateUnityObject(location, out UnityEngine.Object obj))
                 {
                     currentInstanceId = obj.GetInstanceID();
+
+                    if (obj is GameObject)
+                        DestroyImmediate(obj);
                 }
             };
             rootVisualElement.Q<Button>("refresh").clicked += () =>

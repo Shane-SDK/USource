@@ -20,9 +20,9 @@ namespace USource.SourceAsset
             string shader = keys.Keys.First();
             KeyValues.Entry entry = keys[shader];
             if (entry.ContainsKey("$basetexture"))
-            {
                 depdendencies.Add(new Location("materials/" + entry["$basetexture"] + ".vtf", Location.Type.Source, depdendencies[0].ResourceProvider));
-            }
+            if (entry.ContainsKey("$bumpmap"))
+                depdendencies.Add(new Location("materials/" + entry["$bumpmap"] + ".vtf", Location.Type.Source, depdendencies[0].ResourceProvider));
         }
     }
 }

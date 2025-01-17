@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
+using static UnityEditor.FilePathAttribute;
 
 namespace USource.Converters
 {
@@ -106,11 +107,8 @@ namespace USource.Converters
 
             if (vmt.TryGetValue("$bumpmap", out string bumpString))
             {
-                string texturePath = $"materials/{bumpString}.vtf";
-                if (USource.ResourceManager.GetUnityObjectFromCache(new Location(texturePath, Location.Type.Source), out UnityEngine.Texture texture))
-                {
+                if (USource.ResourceManager.GetUnityObject<Texture2D>(new Location($"materials/{bumpString}.vtf", Location.Type.Source), out Texture2D texture, importMode))
                     material.SetTexture("_bumpMap", texture);
-                }
             }
 
             // https://forum.unity.com/threads/change-standard-shader-render-mode-in-runtime.318815/
@@ -168,8 +166,8 @@ namespace USource.Converters
                 material.SetTexture("EmissiveMask", illumMaskTexture);
             }
 
-            if (vmt.TryGetValue("$basealphaenvmapmask", out string v))
-                UnityEngine.Debug.Log(v);
+            //if (vmt.TryGetValue("$basealphaenvmapmask", out string v))
+            //    UnityEngine.Debug.Log(v);
 
             if (vmt.TryGetValue("$envmapmask", out string envmapMaskPath))
             {
