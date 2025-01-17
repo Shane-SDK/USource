@@ -186,10 +186,16 @@ namespace USource
              * Get dependencies
              * Copy file from resource provider to asset database
              */
+            UnityEngine.Profiling.Profiler.BeginSample("ImportSourceAssetToDatabase");
+            UnityEditor.AssetDatabase.StartAssetEditing();
 
-            if (!location.ResourceProvider.TryGetFile(location.SourcePath, out Stream stream) && !TryFindResourceProviderOpenFile(location, out _, out stream))  // Cannot locate file
+            if (!location.ResourceProvider.TryGetFile(location.SourcePath, out Stream stream) && !TryFindResourceProviderOpenFile(location, out _, out stream))
+            {  // Cannot locate file
+                UnityEngine.Profiling.Profiler.EndSample();
                 return;
+            }
 
+            UnityEditor.EditorUtility.DisplayProgressBar($"Importing {location.SourcePath}", "[1/2] Finding Dependencies", 0.0f);
             DependencyTree dependencies = new(location);
             ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
             sourceAsset.GetDependencies(stream, dependencies, true, ImportMode.CreateAndCache);
@@ -199,6 +205,8 @@ namespace USource
             for (int i = depList.Count - 1; i >= 0; i--)
             {
                 Location dependency = depList[i];
+                int reverseIndex = (depList.Count - 1 - i);
+                UnityEditor.EditorUtility.DisplayProgressBar($"Importing {location.SourcePath}", $"[2/2] Importing {dependency.SourcePath} ({reverseIndex} / {depList.Count - 1})", (float)(reverseIndex) / (depList.Count - 1));
                 Stream assetStream = null;
                 if (!(depList[i].ResourceProvider != null && depList[i].ResourceProvider.TryGetFile(dependency.SourcePath, out assetStream)) &&  // Couldn't find data in immediate location
                     !(TryFindResourceProviderOpenFile(dependency, out _, out assetStream)))  // Data isn't in providers
@@ -210,6 +218,10 @@ namespace USource
                     assetStream.CopyTo(fileStream);
                 }
             }
+
+            UnityEditor.EditorUtility.ClearProgressBar();
+            UnityEditor.AssetDatabase.StopAssetEditing();
+            UnityEngine.Profiling.Profiler.EndSample();
 #endif
         }
         void Cache(Location location, UnityEngine.Object obj)
