@@ -83,14 +83,14 @@ namespace USource.Windows
             };
             rootView.selectedIndicesChanged += (indices) =>
             {
-                Location location = entries[entryIndices[indices.First()]];
-                if (USource.ResourceManager.CreateUnityObject(location, out UnityEngine.Object obj))
-                {
-                    currentInstanceId = obj.GetInstanceID();
+                //Location location = entries[entryIndices[indices.First()]];
+                //if (USource.ResourceManager.CreateUnityObject(location, out UnityEngine.Object obj))
+                //{
+                //    currentInstanceId = obj.GetInstanceID();
 
-                    if (obj is GameObject)
-                        DestroyImmediate(obj);
-                }
+                //    if (obj is GameObject)
+                //        DestroyImmediate(obj);
+                //}
             };
             rootVisualElement.Q<Button>("refresh").clicked += () =>
             {
@@ -114,12 +114,12 @@ namespace USource.Windows
             ApplyFilter();
             RefreshListView();
         }
-        private void OnGUI()
-        {
-            UnityEngine.Object unityObject = EditorUtility.InstanceIDToObject(currentInstanceId);
-            Texture2D tex = AssetPreview.GetAssetPreview(unityObject);
-            rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(tex);
-        }
+        //private void OnGUI()
+        //{
+        //    UnityEngine.Object unityObject = EditorUtility.InstanceIDToObject(currentInstanceId);
+        //    Texture2D tex = AssetPreview.GetAssetPreview(unityObject);
+        //    rootVisualElement.Q("preview").style.backgroundImage = new StyleBackground(tex);
+        //}
         void RebuildEntries()
         {
             entries.Clear();
