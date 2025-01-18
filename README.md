@@ -25,8 +25,8 @@ In addition an Asset Browser is provided that allows users to browse and import 
 |bsp|Compiled Level|In the future|:x:|
 |pcf|Particles|In the future|:x:|
 
->[!NOTE]
->VMF files use [RealtimeCSG](https://realtimecsg.com/) brushes for the level geometry. It is provided in this repo.
+>[!IMPORTANT]
+>VMF files use [RealtimeCSG](https://realtimecsg.com/) brushes for the level geometry and is required for this tool.
 
 ## MDL Data Support Status
 |MDL Data|Status||
