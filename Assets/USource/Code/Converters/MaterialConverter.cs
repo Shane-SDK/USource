@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using static UnityEditor.FilePathAttribute;
 
 namespace USource.Converters
 {
-    public class Material : Converter
+    public class MaterialConverter : Converter
     {
         public enum Map
         {
@@ -23,7 +18,7 @@ namespace USource.Converters
         Formats.Source.VTF.VMTFile vmt;
         Dictionary<Map, Location> maps;
         public MaterialFlags flags;
-        public Material(string sourcePath, System.IO.Stream stream) : base(sourcePath, stream)
+        public MaterialConverter(string sourcePath, System.IO.Stream stream) : base(sourcePath, stream)
         {
             this.vmt = new Formats.Source.VTF.VMTFile(stream, sourcePath);
 
@@ -79,19 +74,7 @@ namespace USource.Converters
             // Create a new material
             //UnityEngine.Shader shader = GetShader(vmt.shaderKey);
 
-            UnityEngine.Shader shader = null;
-
-            {
-                string[] guids = AssetDatabase.FindAssets("t:Shader USource", new[] { "Assets/USource" });
-                if (guids.Length == 0)
-                {
-                    Debug.LogError("Could not find USource shader");
-                    return null;
-                }
-
-                shader = AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(guids[0]));
-            }
-
+            UnityEngine.Shader shader = Shader.Find("Shader Graphs/USource");
             UnityEngine.Material material = new UnityEngine.Material(shader);
             material.doubleSidedGI = true;
             material.name = vmt.FileName;

@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
-using USource.Formats.Source.MDL;
+﻿using System.IO;
 using static USource.Formats.Source.MDL.StudioStruct;
 using USource.Converters;
 

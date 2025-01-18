@@ -1,19 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing.Imaging;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEditor;
-using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+﻿using UnityEngine;
 using USource.Formats.Source.VTF;
-using static USource.Formats.Source.VBSP.VBSPStruct;
-using static USource.ResourceManager;
 
 namespace USource.Converters
 {
-    public class Texture : Converter
+    public class TextureConverter : Converter
     {
         public enum ImportOptions
         {
@@ -26,7 +16,7 @@ namespace USource.Converters
         public TextureWrapMode wrapMode = TextureWrapMode.Repeat;
         public bool mipmaps = true;
         public int maxSize = 1024;
-        public Texture(string sourcePath, System.IO.Stream stream, ImportOptions importFlags, int maxSize = 1024) : base(sourcePath, stream)
+        public TextureConverter(string sourcePath, System.IO.Stream stream, ImportOptions importFlags, int maxSize = 1024) : base(sourcePath, stream)
         {
             vtf = new VTFFile(stream);
             this.importFlags = importFlags;

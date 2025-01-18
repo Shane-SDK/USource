@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Collections.Generic;
 using USource.Converters;
-using System.Diagnostics;
 using USource.SourceAsset;
 
 namespace USource
@@ -179,9 +178,9 @@ namespace USource
 
             return unityObject != null;
         }
+#if UNITY_EDITOR
         public void ImportSourceAssetToAssetDatabase(Location location, bool reimportExistingDependencies = true)
         {
-#if UNITY_EDITOR
             /*
              * Get dependencies
              * Copy file from resource provider to asset database
@@ -226,8 +225,8 @@ namespace USource
             UnityEditor.EditorUtility.ClearProgressBar();
             UnityEditor.AssetDatabase.StopAssetEditing();
             UnityEngine.Profiling.Profiler.EndSample();
-#endif
         }
+#endif
         void Cache(Location location, UnityEngine.Object obj)
         {
             objectCache[location] = obj;

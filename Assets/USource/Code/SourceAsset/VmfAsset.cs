@@ -1,9 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using UnityEngine;
 using USource.Converters;
 using VMFParser;
 
@@ -57,6 +55,28 @@ namespace USource.SourceAsset
                         }
                     }
                 }
+            }
+
+            if (vmf.World.TryGetValue("skyname", out string skyMaterialName))
+            {
+                void ProcessSkyMaterial(Location skyLocation)
+                {
+                    if (recursive && USource.ResourceManager.GetStream(skyLocation, out Stream skyStream))
+                    {
+                        new VmtAsset(skyLocation).GetDependencies(skyStream, dependencies, true);
+                    }
+                    else
+                    {
+                        dependencies.Add(skyLocation);
+                    }
+                }
+
+                ProcessSkyMaterial(new Location($"materials/skybox/{skyMaterialName}ft.vmt", Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location($"materials/skybox/{skyMaterialName}bk.vmt", Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location($"materials/skybox/{skyMaterialName}lf.vmt", Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location($"materials/skybox/{skyMaterialName}rt.vmt", Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location($"materials/skybox/{skyMaterialName}up.vmt", Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location($"materials/skybox/{skyMaterialName}dn.vmt", Location.Type.Source, location.ResourceProvider));
             }
         }
         /// <summary>

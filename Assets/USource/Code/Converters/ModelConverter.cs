@@ -2,20 +2,17 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using static USource.Formats.Source.MDL.StudioStruct;
 using USource.Formats.Source.MDL;
 using USource.MathLib;
 using System.IO;
-using UnityEditor;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
 
 namespace USource.Converters
 {
-    public class Model : Converter
+    public class ModelConverter : Converter
     {
         [System.Flags]
         public enum ImportOptions
@@ -48,7 +45,7 @@ namespace USource.Converters
         public Formats.Source.MDL.MDLFile mdl;
         public List<AnimationClip> clips;
         public readonly ImportOptions importOptions;
-        public Model(string sourcePath, Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream, ImportOptions importOptions) : base(sourcePath, stream)
+        public ModelConverter(string sourcePath, Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream, ImportOptions importOptions) : base(sourcePath, stream)
         {
             stream.Position = 0;
             mdl = new MDLFile(stream, physStream, true);
@@ -293,15 +290,6 @@ namespace USource.Converters
                     renderer = model.AddComponent<MeshRenderer>();
                     MeshFilter.sharedMesh = mesh;
                 }
-
-                //foreach (UnityEngine.Material mat in materials)
-                //{
-                //    if (mat.GetFloat("_AlphaClip") == 1 || mat.GetFloat("_Surface") == 0)
-                //    {
-                //        castShadows = false;
-                //        break;
-                //    }
-                //}
 
                 renderer.shadowCastingMode = shadowCastingMode;
 

@@ -1,11 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using ICSharpCode.SharpZipLib.Zip;
-using USource.Formats.Source.VTF;
-using USource.MathLib;
 using UnityEngine;
 
 namespace USource.Formats.Source.VBSP

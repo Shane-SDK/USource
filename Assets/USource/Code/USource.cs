@@ -1,12 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 namespace USource
 {
-    [InitializeOnLoad]
+#if UNITY_EDITOR
+    [UnityEditor.InitializeOnLoad]
+#endif
     public static class USource
     {
         public static ResourceManager ResourceManager => resourceManager;
@@ -19,7 +20,9 @@ namespace USource
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Init()
         {
-            settings = AssetDatabase.LoadAssetAtPath<Settings>(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:Settings", new[] { "Assets/USource" })[0]));
+#if UNITY_EDITOR
+            settings = UnityEditor.AssetDatabase.LoadAssetAtPath<Settings>(UnityEditor.AssetDatabase.GUIDToAssetPath(UnityEditor.AssetDatabase.FindAssets("t:Settings", new[] { "Assets/USource" })[0]));
+#endif
             resourceManager = new ResourceManager();
         }
         public static Type GetTypeFromExtension(string sourceExtension)

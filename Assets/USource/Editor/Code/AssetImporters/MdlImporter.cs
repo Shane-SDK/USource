@@ -15,7 +15,7 @@ namespace USource.AssetImporters
     [ScriptedImporter(0, "mdl")]
     public class MdlImporter : ScriptedImporter
     {
-        public Converters.Model.ImportOptions importOptions = Model.ImportOptions.Physics | Model.ImportOptions.Geometry;
+        public Converters.ModelConverter.ImportOptions importOptions = ModelConverter.ImportOptions.Physics | ModelConverter.ImportOptions.Geometry;
         public ShadowCastingMode shadowCastingMode = ShadowCastingMode.On;
         public override void OnImportAsset(AssetImportContext ctx)
         {
@@ -47,7 +47,7 @@ namespace USource.AssetImporters
             mdlStream.Close();
             mdlStream = File.OpenRead(ctx.assetPath);
 
-            Model model = new Model(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream, importOptions);
+            ModelConverter model = new ModelConverter(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream, importOptions);
             model.shadowCastingMode = shadowCastingMode;
             GameObject obj = model.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as GameObject;
 

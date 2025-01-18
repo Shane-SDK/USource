@@ -1,16 +1,15 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using RealtimeCSG;
-using RealtimeCSG.Components;
 using VMFParser;
 using System.Linq;
-using USource.AssetImporters;
-using UnityEditor;
-using USource.Converters;
 using USource.SourceAsset;
 using System.Text;
 using System.IO;
+#if UNITY_EDITOR
+using UnityEditor;
+using RealtimeCSG;
+using RealtimeCSG.Components;
+#endif
 
 namespace USource.Converters
 {
@@ -24,7 +23,11 @@ namespace USource.Converters
 
         public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
+#if UNITY_EDITOR
             return CreateFromVMF(stream, ctx);
+#else
+            return new GameObject();
+#endif
         }
         public static readonly string[] noRenderMaterials = new string[]
 {
@@ -128,29 +131,29 @@ namespace USource.Converters
 
                     if (USource.ResourceManager.GetUnityObject(location, out UnityEngine.Material resourceMaterial, ctx.ImportMode, true))
                     {
-#if UNITY_EDITOR
-                        VmtImporter importer = AssetImporter.GetAtPath(location.AssetPath) as VmtImporter;
-                        if (importer != null)
-                        {
-                            if (importer.flags.HasFlag(MaterialFlags.Invisible))
-                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoRender;
-                            if (importer.flags.HasFlag(MaterialFlags.NoShadows))
-                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoCastShadows;
-                            if (importer.flags.HasFlag(MaterialFlags.NonSolid))
-                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoCollision;
+//#if UNITY_EDITOR
+//                        AssetImporters.VmtImporter importer = AssetImporter.GetAtPath(location.AssetPath) as AssetImporters.VmtImporter;
+//                        if (importer != null)
+//                        {
+//                            if (importer.flags.HasFlag(MaterialFlags.Invisible))
+//                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoRender;
+//                            if (importer.flags.HasFlag(MaterialFlags.NoShadows))
+//                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoCastShadows;
+//                            if (importer.flags.HasFlag(MaterialFlags.NonSolid))
+//                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoCollision;
 
-                            if (importer.flags == MaterialFlags.NonSolid)
-                                layer = VMFLayer.Transparent;
+//                            if (importer.flags == MaterialFlags.NonSolid)
+//                                layer = VMFLayer.Transparent;
 
-                            if (importer.flags.HasFlag(MaterialFlags.Invisible) && importer.flags.HasFlag(MaterialFlags.NonSolid) == false)
-                            {
-                                layer = VMFLayer.Clipping;
-                            }
+//                            if (importer.flags.HasFlag(MaterialFlags.Invisible) && importer.flags.HasFlag(MaterialFlags.NonSolid) == false)
+//                            {
+//                                layer = VMFLayer.Clipping;
+//                            }
 
-                            //if (importer.flags.HasFlag(AssetInfo.MaterialFlags.Water))
-                            //    layer = Layer.Water;
-                        }
-#endif
+//                            //if (importer.flags.HasFlag(AssetInfo.MaterialFlags.Water))
+//                            //    layer = Layer.Water;
+//                        }
+//#endif
                     }
                     else
                     {
@@ -422,33 +425,6 @@ namespace USource.Converters
             }
 
             CSGModelManager.BuildLightmapUvs(true);
-
-            vmf.World.TryGetValue("skyname", out string skyMaterialName);
-
-            UnityEngine.Material skyMaterial = new UnityEngine.Material(Shader.Find("Skybox/6 Sided"));
-
-            void DoSkyStuff(string sourceSide, string unitySide)
-            {
-                if (USource.ResourceManager.GetUnityObject(new Location($"materials/skybox/{skyMaterialName}{sourceSide}.vmt", Location.Type.Source), out UnityEngine.Material texResource, ctx.ImportMode, true))
-                {
-                    // Update texture importer to clamp texture
-                    texResource.mainTexture.wrapMode = TextureWrapMode.Clamp;
-                    VtfImporter textureImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texResource.mainTexture)) as VtfImporter;
-                    textureImporter.wrapMode = TextureWrapMode.Clamp;
-                    skyMaterial.SetTexture(unitySide, texResource.mainTexture);
-                }
-            }
-
-            DoSkyStuff("lf", "_BackTex");
-            DoSkyStuff("rt", "_FrontTex");
-            DoSkyStuff("dn", "_DownTex");
-            DoSkyStuff("up", "_UpTex");
-            DoSkyStuff("ft", "_LeftTex");
-            DoSkyStuff("bk", "_RightTex");
-
-            RenderSettings.skybox = skyMaterial;
-
-            EditorUtility.ClearProgressBar();
 
             return vmfGO;
         }

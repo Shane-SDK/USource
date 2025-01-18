@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using USource.Converters;
+﻿using USource.Converters;
 #if UNITY_EDITOR
 using UnityEditor.AssetImporters;
 #endif

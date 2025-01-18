@@ -1,14 +1,7 @@
-﻿using Codice.CM.Common;
-using PlasticGui.Help;
+﻿
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEditor.VersionControl;
 using UnityEngine;
-using static USource.ResourceManager;
 
 namespace USource.Converters
 {
@@ -87,17 +80,17 @@ namespace USource.Converters
                     // Physics model
                     TryGetStream(location.SourcePath.Replace(".mdl", ".phy"), out Stream physStream);
 
-                    converter = new Converters.Model(location.SourcePath, assetStream, vvdStream, vtxStream, physStream, Model.ImportOptions.Geometry);
+                    converter = new Converters.ModelConverter(location.SourcePath, assetStream, vvdStream, vtxStream, physStream, ModelConverter.ImportOptions.Geometry);
 
                     physStream?.Close();
                     vvdStream?.Close();
                     vtxStream?.Close();
                     break;
                 case ".vmt":
-                    converter = new Converters.Material(location.SourcePath, assetStream);
+                    converter = new Converters.MaterialConverter(location.SourcePath, assetStream);
                     break;
                 case ".vtf":
-                    converter = new Converters.Texture(location.SourcePath, assetStream, default);
+                    converter = new Converters.TextureConverter(location.SourcePath, assetStream, default);
                     break;
                 case ".vmf":
                     converter = new VmfConverter(location.SourcePath, assetStream);

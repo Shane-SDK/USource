@@ -22,6 +22,27 @@ namespace USource.SourceAsset
             ProcessKey("$basetexture");
             ProcessKey("$bumpmap");
 
+            void ProcessSkyMaterial(Location skyLocation)
+            {
+                if (recursive && USource.ResourceManager.GetStream(skyLocation, out Stream skyStream))
+                {
+                    new VmtAsset(skyLocation).GetDependencies(skyStream, tree, true);
+                }
+                else
+                {
+                    tree.Add(skyLocation);
+                }
+            }
+
+            if (location.SourcePath.Contains("/skybox/") && location.SourcePath.Contains("ft.vmt"))
+            {
+                ProcessSkyMaterial(new Location(location.SourcePath.Replace("ft.vmt", "up.vmt"), Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location(location.SourcePath.Replace("ft.vmt", "lf.vmt"), Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location(location.SourcePath.Replace("ft.vmt", "rt.vmt"), Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location(location.SourcePath.Replace("ft.vmt", "bk.vmt"), Location.Type.Source, location.ResourceProvider));
+                ProcessSkyMaterial(new Location(location.SourcePath.Replace("ft.vmt", "dn.vmt"), Location.Type.Source, location.ResourceProvider));
+            }
+
             void ProcessKey(string key)
             {
                 if (entry.ContainsKey(key))
