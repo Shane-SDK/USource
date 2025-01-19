@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace USource.Formats.Source.VBSP
@@ -8,123 +10,183 @@ namespace USource.Formats.Source.VBSP
     public class VBSPFile : VBSPStruct
     {
         // ======== BSP ======= //
-        public UReader BSPFileReader;
-        public dheader_t BSP_Header;
+        public UReader reader;
+        public dheader_t header;
 
-        public dface_t[] BSP_Faces;
-        public dmodel_t[] BSP_Models;
+        public dface_t[] faces;
+        public dmodel_t[] models;
 
-        public doverlay_t[] BSP_Overlays;
+        public doverlay_t[] overlays;
 
-        public ddispinfo_t[] BSP_DispInfo;
-        public dDispVert[] BSP_DispVerts;
+        public ddispinfo_t[] dispInfo;
+        public dDispVert[] dispVerts;
 
-        public texinfo_t[] BSP_TexInfo;
-        public dtexdata_t[] BSP_TexData;
-        public String[] BSP_TextureStringData;
+        public texinfo_t[] texInfo;
+        public dtexdata_t[] texData;
+        public String[] textureStringData;
 
-        public dedge_t[] BSP_Edges;
-        public Vector3[] BSP_Vertices;
-        public Int32[] BSP_Surfedges;
+        public dedge_t[] edges;
+        public Vector3[] vertices;
+        public Int32[] surfEdges;
+
+        public dnode_t[] nodes;
+        public dleaf_t[] leafs;
+        public ushort[] leafFaces;
 
         // ======== OTHER ======= //
 
-        public Face[] BSP_CFaces, BSP_CDisp;
+        public Face[] cFaces, cDisps;
         public string name;
+
+        public List<BspEntity> entities;
 
         public PAKProvider pakProvider = null;
         //TODO: Check if LUMPs has a LZMA compression (ex: updated tf maps)
-        public static VBSPFile Load(Stream stream, string BSPName = default)
+        public VBSPFile(Stream stream, string BSPName = default)
         {
-            VBSPFile file = new VBSPFile();
             //bspPath = uLoader.RootPath + "/" + uLoader.ModFolders[0] + "/maps/" + BSPName + ".bsp";
             //if (!File.Exists(bspPath))
             //    throw new FileNotFoundException(String.Format("Map file ({0}) wasn't found in the ({1}) mod-folder. Check weather a path is valid.", BSPName, uLoader.ModFolders[0]));
-            file.name = BSPName;
+            name = BSPName;
             //bspPath = BSPName;
-            file.BSPFileReader = new UReader(stream);
-            file.BSPFileReader.ReadType(ref file.BSP_Header);
+            reader = new UReader(stream);
+            reader.ReadType(ref header);
 
-            if (file.BSP_Header.Ident != 0x50534256)
+            if (header.Ident != 0x50534256)
                 throw new FileLoadException(String.Format("{0}: File signature does not match 'VBSP'", BSPName));
 
-            if (file.BSP_Header.Version < 19 || file.BSP_Header.Version > 21)
-                throw new FileLoadException(String.Format("{0}: BSP version ({1}) isn't supported", BSPName, file.BSP_Header.Version));
+            if (header.Version < 19 || header.Version > 21)
+                throw new FileLoadException(String.Format("{0}: BSP version ({1}) isn't supported", BSPName, header.Version));
 
-            if (file.BSP_Header.Lumps[0].FileOfs == 0)
+            if (header.Lumps[0].FileOfs == 0)
             {
                 Debug.Log("Found Left 4 Dead 2 header");
-                for (Int32 i = 0; i < file.BSP_Header.Lumps.Length; i++)
+                for (Int32 i = 0; i < header.Lumps.Length; i++)
                 {
-                    file.BSP_Header.Lumps[i].FileOfs = file.BSP_Header.Lumps[i].FileLen;
-                    file.BSP_Header.Lumps[i].FileLen = file.BSP_Header.Lumps[i].Version;
+                    header.Lumps[i].FileOfs = header.Lumps[i].FileLen;
+                    header.Lumps[i].FileLen = header.Lumps[i].Version;
                 }
             }
 
             //BSP_WorldSpawn = new GameObject(BSPName);
 
-            if (file.BSP_Header.Lumps[58].FileLen / 56 <= 0)
+            if (header.Lumps[58].FileLen / 56 <= 0)
             {
-                file.BSP_Faces = new dface_t[file.BSP_Header.Lumps[7].FileLen / 56];
-                file.BSPFileReader.ReadArray(ref file.BSP_Faces, file.BSP_Header.Lumps[7].FileOfs);
+                faces = new dface_t[header.Lumps[7].FileLen / 56];
+                reader.ReadArray(ref faces, header.Lumps[7].FileOfs);
             }
             else
             {
-                file.BSP_Faces = new dface_t[file.BSP_Header.Lumps[58].FileLen / 56];
-                file.BSPFileReader.ReadArray(ref file.BSP_Faces, file.BSP_Header.Lumps[58].FileOfs);
+                faces = new dface_t[header.Lumps[58].FileLen / 56];
+                reader.ReadArray(ref faces, header.Lumps[58].FileOfs);
             }
 
-            file.BSP_Models = new dmodel_t[file.BSP_Header.Lumps[14].FileLen / 48];
-            file.BSPFileReader.ReadArray(ref file.BSP_Models, file.BSP_Header.Lumps[14].FileOfs);
+            models = new dmodel_t[header.Lumps[14].FileLen / 48];
+            reader.ReadArray(ref models, header.Lumps[14].FileOfs);
 
-            file.BSP_Overlays = new doverlay_t[file.BSP_Header.Lumps[45].FileLen / 352];
-            file.BSPFileReader.ReadArray(ref file.BSP_Overlays, file.BSP_Header.Lumps[45].FileOfs);
+            overlays = new doverlay_t[header.Lumps[45].FileLen / 352];
+            reader.ReadArray(ref overlays, header.Lumps[45].FileOfs);
 
-            file.BSP_DispInfo = new ddispinfo_t[file.BSP_Header.Lumps[26].FileLen / 176];
-            file.BSPFileReader.ReadArray(ref file.BSP_DispInfo, file.BSP_Header.Lumps[26].FileOfs);
+            dispInfo = new ddispinfo_t[header.Lumps[26].FileLen / 176];
+            reader.ReadArray(ref dispInfo, header.Lumps[26].FileOfs);
 
-            file.BSP_DispVerts = new dDispVert[file.BSP_Header.Lumps[33].FileLen / 20];
-            file.BSPFileReader.ReadArray(ref file.BSP_DispVerts, file.BSP_Header.Lumps[33].FileOfs);
+            dispVerts = new dDispVert[header.Lumps[33].FileLen / 20];
+            reader.ReadArray(ref dispVerts, header.Lumps[33].FileOfs);
 
-            file.BSP_TexInfo = new texinfo_t[file.BSP_Header.Lumps[18].FileLen / 12];
-            file.BSPFileReader.ReadArray(ref file.BSP_TexInfo, file.BSP_Header.Lumps[18].FileOfs);
+            texInfo = new texinfo_t[header.Lumps[18].FileLen / 12];
+            reader.ReadArray(ref texInfo, header.Lumps[18].FileOfs);
 
-            file.BSP_TexInfo = new texinfo_t[file.BSP_Header.Lumps[6].FileLen / 72];
-            file.BSPFileReader.ReadArray(ref file.BSP_TexInfo, file.BSP_Header.Lumps[6].FileOfs);
+            texInfo = new texinfo_t[header.Lumps[6].FileLen / 72];
+            reader.ReadArray(ref texInfo, header.Lumps[6].FileOfs);
 
-            file.BSP_TexData = new dtexdata_t[file.BSP_Header.Lumps[2].FileLen / 32];
-            file.BSPFileReader.ReadArray(ref file.BSP_TexData, file.BSP_Header.Lumps[2].FileOfs);
+            texData = new dtexdata_t[header.Lumps[2].FileLen / 32];
+            reader.ReadArray(ref texData, header.Lumps[2].FileOfs);
 
-            file.BSP_TextureStringData = new String[file.BSP_Header.Lumps[44].FileLen / 4];
+            textureStringData = new String[header.Lumps[44].FileLen / 4];
 
-            Int32[] BSP_TextureStringTable = new Int32[file.BSP_Header.Lumps[44].FileLen / 4];
-            file.BSPFileReader.ReadArray(ref BSP_TextureStringTable, file.BSP_Header.Lumps[44].FileOfs);
+            Int32[] BSP_TextureStringTable = new Int32[header.Lumps[44].FileLen / 4];
+            reader.ReadArray(ref BSP_TextureStringTable, header.Lumps[44].FileOfs);
 
             //if (ULoader.ModFolders[0] == "tf")
             //    return file;
 
             for (Int32 i = 0; i < BSP_TextureStringTable.Length; i++)
-                file.BSP_TextureStringData[i] = file.BSPFileReader.ReadNullTerminatedString(file.BSP_Header.Lumps[43].FileOfs + BSP_TextureStringTable[i]);
+                textureStringData[i] = reader.ReadNullTerminatedString(header.Lumps[43].FileOfs + BSP_TextureStringTable[i]);
 
-            file.BSP_Edges = new dedge_t[file.BSP_Header.Lumps[12].FileLen / 4];
-            file.BSPFileReader.ReadArray(ref file.BSP_Edges, file.BSP_Header.Lumps[12].FileOfs);
+            edges = new dedge_t[header.Lumps[12].FileLen / 4];
+            reader.ReadArray(ref edges, header.Lumps[12].FileOfs);
 
-            file.BSPFileReader.BaseStream.Seek(file.BSP_Header.Lumps[3].FileOfs, SeekOrigin.Begin);
-            file.BSP_Vertices = new Vector3[file.BSP_Header.Lumps[3].FileLen / 12];
+            reader.BaseStream.Seek(header.Lumps[3].FileOfs, SeekOrigin.Begin);
+            vertices = new Vector3[header.Lumps[3].FileLen / 12];
 
-            for (Int32 i = 0; i < file.BSP_Vertices.Length; i++)
-                file.BSP_Vertices[i] = file.BSPFileReader.ReadVector3D(true) * USource.settings.sourceToUnityScale;
+            for (Int32 i = 0; i < vertices.Length; i++)
+                vertices[i] = reader.ReadVector3D(true) * USource.settings.sourceToUnityScale;
 
-            file.BSP_Surfedges = new Int32[file.BSP_Header.Lumps[13].FileLen / 4];
-            file.BSPFileReader.ReadArray(ref file.BSP_Surfedges, file.BSP_Header.Lumps[13].FileOfs);
+            surfEdges = new Int32[header.Lumps[13].FileLen / 4];
+            reader.ReadArray(ref surfEdges, header.Lumps[13].FileOfs);
 
-            //file.BSP_Brushes = new List<GameObject>();
+            entities = new();
+            reader.BaseStream.Seek(header.Lumps[0].FileOfs, SeekOrigin.Begin);
+            MatchCollection Matches = Regex.Matches(
+                new(reader.ReadChars(header.Lumps[0].FileLen)),
+                @"{[^}]*}", RegexOptions.IgnoreCase);
 
-            //Create new lightmap list
-            //ULoader.lightmapsData = new List<LightmapData>();
-            //LightmapSettings.lightmapsMode = LightmapsMode.NonDirectional;
+            int[] quoteIndexBuffer = new int[4];
+            foreach(Match m in Matches)
+            {
+                string[] lines = m.Value.Trim('{', '}', ' ').Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length == 0) continue;
+                BspEntity ent = new BspEntity();
+                foreach (string line in lines)
+                {
+                    int quoteCount = 0;
+                    for (int i = 0; i < line.Length; i++)
+                    {
+                        if (line[i] == '"')
+                        {
+                            quoteIndexBuffer[quoteCount] = i;
+                            quoteCount++;
+                            if (quoteCount >= 4)
+                                break;
+                        }  // Find quotes
+                    }
+                    if (quoteCount < 3) break;
 
-            return file;
+                    string key = line.Substring(quoteIndexBuffer[0] + 1, (quoteIndexBuffer[1] - quoteIndexBuffer[0] - 1));
+                    string value = line.Substring(quoteIndexBuffer[2] + 1, (quoteIndexBuffer[3] - quoteIndexBuffer[2] - 1));
+
+                    if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(key)) break;
+
+                    ent.values[key] = value;
+                }
+
+                entities.Add(ent);
+            }
+
+            nodes = new dnode_t[header.Lumps[5].FileLen / 32];
+            reader.ReadArray(ref nodes, header.Lumps[5].FileOfs);
+
+            leafs = new dleaf_t[header.Lumps[10].FileLen / 32];
+            reader.ReadArray(ref leafs, header.Lumps[10].FileOfs);
+
+            leafFaces = new ushort[header.Lumps[16].FileLen / 2];
+            reader.ReadArray(ref leafFaces, header.Lumps[16].FileOfs);
+        }
+
+    }
+    public class BspEntity
+    {
+        public Dictionary<string, string> values = new();
+        public bool TryGetTransformedVector3(string key, out Vector3 unityPosition)
+        {
+            if (values.TryGetValue(key, out string posString) && Conversions.TryParseVector3(posString, out unityPosition))
+            {
+                unityPosition = Converters.Converter.SourceTransformPointHammer(unityPosition);
+                return true;
+            }
+
+            unityPosition = default;
+            return false;
         }
     }
 }

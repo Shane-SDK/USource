@@ -38,7 +38,7 @@ namespace USource
     }
 #endif
 
-    public static class _Converters
+    public static class Conversions
     {
         public static string ToString(this string param)
         {
@@ -117,6 +117,24 @@ namespace USource
         {
             return Mathf.Clamp(color, 0, 255) / 255.0f;
         }
+        public static bool TryParseVector3(string stringValue, out UnityEngine.Vector3 vector3)
+        {
+            vector3 = default;
+
+            string[] splitValues = stringValue.Split(' ');
+            if (splitValues.Length < 3)
+                return false;
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (float.TryParse(splitValues[i], out float floatValue))
+                    vector3[i] = floatValue;
+                else
+                    return false;
+            }
+
+            return true;
+        }
 
         public static Vector4 ToColorVec(this string param)
         {
@@ -152,6 +170,37 @@ namespace USource
             var split2 = split1 == -1 ? -1 : param.IndexOf(' ', split1 + 1);
 
             return split2 == -1 ? 255 : ToInt32(param.Substring(split2 + 1));
+        }
+        public static void DrawBox(Vector3 pos, Quaternion rot, Vector3 scale, Color c, float time)
+        {
+            // create matrix
+            Matrix4x4 m = new Matrix4x4();
+            m.SetTRS(pos, rot, scale);
+
+            var point1 = m.MultiplyPoint(new Vector3(-0.5f, -0.5f, 0.5f));
+            var point2 = m.MultiplyPoint(new Vector3(0.5f, -0.5f, 0.5f));
+            var point3 = m.MultiplyPoint(new Vector3(0.5f, -0.5f, -0.5f));
+            var point4 = m.MultiplyPoint(new Vector3(-0.5f, -0.5f, -0.5f));
+
+            var point5 = m.MultiplyPoint(new Vector3(-0.5f, 0.5f, 0.5f));
+            var point6 = m.MultiplyPoint(new Vector3(0.5f, 0.5f, 0.5f));
+            var point7 = m.MultiplyPoint(new Vector3(0.5f, 0.5f, -0.5f));
+            var point8 = m.MultiplyPoint(new Vector3(-0.5f, 0.5f, -0.5f));
+
+            Debug.DrawLine(point1, point2, c, time);
+            Debug.DrawLine(point2, point3, c, time);
+            Debug.DrawLine(point3, point4, c, time);
+            Debug.DrawLine(point4, point1, c, time);
+
+            Debug.DrawLine(point5, point6, c, time);
+            Debug.DrawLine(point6, point7, c, time);
+            Debug.DrawLine(point7, point8, c, time);
+            Debug.DrawLine(point8, point5, c, time);
+
+            Debug.DrawLine(point1, point5, c, time);
+            Debug.DrawLine(point2, point6, c, time);
+            Debug.DrawLine(point3, point7, c, time);
+            Debug.DrawLine(point4, point8, c, time);
         }
     }
 

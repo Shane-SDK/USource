@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Rendering;
 using USource.Formats.Source.VBSP;
@@ -16,18 +12,36 @@ namespace USource.Converters
     {
         Location location;
         VBSPFile bspFile;
-        public BspConverter(string sourcePath, Stream stream) : base(sourcePath, stream)
+        ImportOptions importOptions;
+        public BspConverter(string sourcePath, Stream stream, ImportOptions importOptions) : base(sourcePath, stream)
         {
             location = new Location(sourcePath, Location.Type.Source);
-            bspFile = VBSPFile.Load(stream, sourcePath);
+            bspFile = new VBSPFile(stream, sourcePath);
+            this.importOptions = importOptions;
         }
-
         public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
+            BspEntity skyCamera = bspFile.entities.FirstOrDefault(e => e.values.TryGetValue("classname", out string className) && className == "sky_camera");
+            HashSet<int> skyLeafFaces = new();
+
+            if (importOptions.cullSkybox && skyCamera != null && skyCamera.TryGetTransformedVector3("origin", out Vector3 cameraPosition))
+            {
+                dleaf_t skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(cameraPosition));
+                foreach (dleaf_t leafFace in bspFile.leafs.Where(e => e.cluster == skyBoxLeaf.cluster))
+                {
+                    for (ushort leafIndex = leafFace.firstLeafFace; leafIndex < leafFace.firstLeafFace + leafFace.numLeafFaces; leafIndex++)
+                    {
+                        int faceIndex = bspFile.leafFaces[leafIndex];
+                        if (!skyLeafFaces.Contains(faceIndex))
+                            skyLeafFaces.Add(faceIndex);
+                    }
+                }
+            }
+
             GameObject worldGo = new GameObject(location.SourcePath);
             worldGo.isStatic = true;
 
-            for (int modelIndex = 0; modelIndex < bspFile.BSP_Models.Length; modelIndex++)
+            for (int modelIndex = 0; modelIndex < bspFile.models.Length; modelIndex++)
             {
                 // Create a mapping of every material used
                 Dictionary<int, UnityEngine.Material> materialMap = new();
@@ -38,15 +52,17 @@ namespace USource.Converters
                 Dictionary<int, List<int>> subMeshes = new();
                 List<int> sourceMap = new();
 
-                dmodel_t model = bspFile.BSP_Models[modelIndex];
+                dmodel_t model = bspFile.models[modelIndex];
 
                 for (int faceIndex = model.FirstFace; faceIndex < model.FirstFace + model.NumFaces; faceIndex++)
                 {
-                    dface_t face = bspFile.BSP_Faces[faceIndex];
+                    if (skyLeafFaces.Contains(faceIndex)) continue;
+
+                    dface_t face = bspFile.faces[faceIndex];
                     if (face.DispInfo != -1) continue;
-                    texinfo_t textureInfo = bspFile.BSP_TexInfo[face.TexInfo];
-                    dtexdata_t textureData = bspFile.BSP_TexData[textureInfo.TexData];
-                    string materialPath = bspFile.BSP_TextureStringData[textureData.NameStringTableID].ToLower();
+                    texinfo_t textureInfo = bspFile.texInfo[face.TexInfo];
+                    dtexdata_t textureData = bspFile.texData[textureInfo.TexData];
+                    string materialPath = bspFile.textureStringData[textureData.NameStringTableID].ToLower();
 
                     if (USource.noRenderMaterials.Contains(materialPath) || USource.noCreateMaterials.Contains(materialPath))  // Don't include sky and other tool textures
                         continue;
@@ -73,9 +89,9 @@ namespace USource.Converters
 
                     for (int surfEdgeIndex = face.FirstEdge; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++)
                     {
-                        int surfEdge = bspFile.BSP_Surfedges[surfEdgeIndex];
+                        int surfEdge = bspFile.surfEdges[surfEdgeIndex];
                         int edgeIndex = surfEdge > 0 ? 0 : 1;
-                        Vector3 vertex = EnsureNonInfinite(bspFile.BSP_Vertices[bspFile.BSP_Edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
+                        Vector3 vertex = EnsureFinite(bspFile.vertices[bspFile.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
                         vertices.Add(vertex);
 
                         float TextureUVS = (Vector3.Dot(vertex, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
@@ -84,7 +100,7 @@ namespace USource.Converters
                         //float LightmapS = (Vector3.Dot(vertex, lS) + (textureInfo.LightmapVecs[0].w + 0.5f - face.LightmapTextureMinsInLuxels[0]) * USource.settings.sourceToUnityScale) / ((face.LightmapTextureSizeInLuxels[0] + 1) * USource.settings.sourceToUnityScale);
                         //float LightmapT = (Vector3.Dot(vertex, lT) + (textureInfo.LightmapVecs[1].w + 0.5f - face.LightmapTextureMinsInLuxels[1]) * USource.settings.sourceToUnityScale) / ((face.LightmapTextureSizeInLuxels[1] + 1) * USource.settings.sourceToUnityScale);
 
-                        uvs.Add(EnsureNonInfinite(new Vector2(TextureUVS, TextureUVT)));
+                        uvs.Add(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
                         //lightMapUvs.Add(new Vector2(LightmapS + textureData.NameStringTableID, LightmapT));
                     }
                 }
@@ -107,7 +123,7 @@ namespace USource.Converters
                     int subMeshIndex = sourceMap[i];
                     mesh.SetIndices(subMeshes[subMeshIndex], MeshTopology.Triangles, i);
 
-                    if (!USource.ResourceManager.GetUnityObject(new Location($"materials/{bspFile.BSP_TextureStringData[subMeshIndex]}.vmt", Location.Type.Source), out Material material, ctx.ImportMode, true))
+                    if (!USource.ResourceManager.GetUnityObject(new Location($"materials/{bspFile.textureStringData[subMeshIndex]}.vmt", Location.Type.Source), out Material material, ctx.ImportMode, true))
                         material = new Material(Shader.Find("Shader Graphs/Error"));
                     materials.Add(material);
                 }
@@ -132,13 +148,18 @@ namespace USource.Converters
 
             return worldGo;
         }
-        Vector3 EnsureNonInfinite(Vector3 v)
+        Vector3 EnsureFinite(Vector3 v)
         {
             return new Vector3(float.IsInfinity(v.x) ? 0 : v.x, float.IsInfinity(v.y) ? 0 : v.y, float.IsInfinity(v.z) ? 0 : v.z);
         }
-        Vector2 EnsureNonInfinite(Vector2 v)
+        Vector2 EnsureFinite(Vector2 v)
         {
             return new Vector2(float.IsInfinity(v.x) ? 0 : v.x, float.IsInfinity(v.y) ? 0 : v.y);
+        }
+        [System.Serializable]
+        public struct ImportOptions
+        {
+            public bool cullSkybox;
         }
     }
 }

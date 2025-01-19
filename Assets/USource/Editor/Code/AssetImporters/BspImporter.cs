@@ -11,10 +11,11 @@ namespace USource.AssetImporters
     [ScriptedImporter(0, "bsp")]
     public class BspImporter : ScriptedImporter
     {
+        public BspConverter.ImportOptions importOptions;
         public override void OnImportAsset(AssetImportContext ctx)
         {
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
-            BspConverter converter = new BspConverter(location.SourcePath, System.IO.File.OpenRead(ctx.assetPath));
+            BspConverter converter = new BspConverter(location.SourcePath, System.IO.File.OpenRead(ctx.assetPath), importOptions);
             UnityEngine.Object obj = converter.CreateAsset(new ImportContext( ImportMode.AssetDatabase, ctx));
             ctx.AddObjectToAsset("go", obj);
             ctx.SetMainObject(obj);

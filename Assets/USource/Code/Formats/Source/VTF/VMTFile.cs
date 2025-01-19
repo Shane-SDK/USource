@@ -187,11 +187,11 @@ namespace USource.Formats.Source.VTF
         }
         public Single GetSingle(String parma)
         {
-            return _Converters.ToSingle(GetParma(parma));//float.Parse(Items[Data]);
+            return Conversions.ToSingle(GetParma(parma));//float.Parse(Items[Data]);
         }
         public Int32 GetInteger(String parma)
         {
-            return _Converters.ToInt32(GetParma(parma));//float.Parse(Items[Data]);
+            return Conversions.ToInt32(GetParma(parma));//float.Parse(Items[Data]);
         }
         public Color32 GetColor()
         {
