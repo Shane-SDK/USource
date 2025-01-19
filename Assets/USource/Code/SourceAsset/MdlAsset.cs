@@ -46,14 +46,7 @@ namespace USource.SourceAsset
                 foreach (string name in textureNames)
                 {
                     Location location = new Location($"materials/{dir}{name}.vmt", Location.Type.Source, tree.Root.location.ResourceProvider);
-                    if (recursive && USource.ResourceManager.GetStream(location, out Stream depStream, importMode))
-                    {
-                        new VmtAsset(location).GetDependencies(depStream, tree, true, importMode);
-                    }
-                    else
-                    {
-                        tree.Add(location);
-                    }
+                    ISourceAsset.AddDependency(location, tree, recursive, importMode);
                 }
             }
         }

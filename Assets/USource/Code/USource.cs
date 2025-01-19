@@ -13,6 +13,21 @@ namespace USource
         public static ResourceManager ResourceManager => resourceManager;
         static ResourceManager resourceManager;
         public static Settings settings;
+        public readonly static HashSet<string> noRenderMaterials = new HashSet<string>
+        {
+            "tools/toolsnodraw",
+            "tools/toolsinvisible"
+        };
+        public static readonly HashSet<string> noCreateMaterials = new HashSet<string>
+        {
+            "tools/toolsskybox",
+            "tools/toolsskybox2d",
+            "tools/toolsskip",
+            "tools/toolsplayerclip",
+            "tools/toolshint",
+            "tools/toolsclip",
+            "tools/toolstrigger"
+        };
         static USource()
         {
             Init();

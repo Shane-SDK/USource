@@ -29,18 +29,6 @@ namespace USource.Converters
             return new GameObject();
 #endif
         }
-        public static readonly string[] noRenderMaterials = new string[]
-{
-            "materials/tools/toolsnodraw"
-};
-        public static readonly string[] noCreateMaterials = new string[]
-        {
-            "materials/tools/toolsskybox",
-            "materials/tools/toolsskip",
-            "materials/tools/toolsplayerclip",
-            "materials/tools/toolshint",
-            "materials/tools/toolsclip"
-        };
 #if UNITY_EDITOR
         // Load VMF
         public static GameObject CreateFromVMF(System.IO.Stream stream, ImportContext ctx)
@@ -123,42 +111,21 @@ namespace USource.Converters
                     // Get material
                     if (side.TryGetValue("material", out string materialPath) == false) { i++; continue; }  // Material does not exist
 
+                    if (USource.noCreateMaterials.Contains(materialPath.ToLower()))
+                        return null;
+                    if (USource.noRenderMaterials.Contains(materialPath.ToLower()))
+                        flags[i] |= (RealtimeCSG.Legacy.TexGenFlags.NoRender | RealtimeCSG.Legacy.TexGenFlags.NoCastShadows);
+
                     Location location = new Location($"materials/{materialPath}.vmt", Location.Type.Source);
+
+
                     //if (ResourceManager.TryResolveMaterialPath(location.SourcePath, out Location resolvedMaterial))
                     //{
                     //    location = resolvedMaterial;
                     //}
 
-                    if (USource.ResourceManager.GetUnityObject(location, out UnityEngine.Material resourceMaterial, ctx.ImportMode, true))
-                    {
-//#if UNITY_EDITOR
-//                        AssetImporters.VmtImporter importer = AssetImporter.GetAtPath(location.AssetPath) as AssetImporters.VmtImporter;
-//                        if (importer != null)
-//                        {
-//                            if (importer.flags.HasFlag(MaterialFlags.Invisible))
-//                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoRender;
-//                            if (importer.flags.HasFlag(MaterialFlags.NoShadows))
-//                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoCastShadows;
-//                            if (importer.flags.HasFlag(MaterialFlags.NonSolid))
-//                                flags[i] |= RealtimeCSG.Legacy.TexGenFlags.NoCollision;
-
-//                            if (importer.flags == MaterialFlags.NonSolid)
-//                                layer = VMFLayer.Transparent;
-
-//                            if (importer.flags.HasFlag(MaterialFlags.Invisible) && importer.flags.HasFlag(MaterialFlags.NonSolid) == false)
-//                            {
-//                                layer = VMFLayer.Clipping;
-//                            }
-
-//                            //if (importer.flags.HasFlag(AssetInfo.MaterialFlags.Water))
-//                            //    layer = Layer.Water;
-//                        }
-//#endif
-                    }
-                    else
-                    {
+                    if (!USource.ResourceManager.GetUnityObject(location, out UnityEngine.Material resourceMaterial, ctx.ImportMode, true))
                         resourceMaterial = Resources.Load<UnityEngine.Material>("Error");
-                    }
 
                     materials[i] = resourceMaterial;
 

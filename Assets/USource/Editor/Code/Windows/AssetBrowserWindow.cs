@@ -1,12 +1,8 @@
-using NUnit.Framework;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using UnityEngine.UIElements;
-using USource.SourceAsset;
 
 namespace USource.Windows
 {
@@ -18,6 +14,7 @@ namespace USource.Windows
             ".vtf",
             ".mdl",
             ".vmf",
+            ".bsp",
             //".wav",
             //".mp3"
         };
