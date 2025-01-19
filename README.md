@@ -1,6 +1,6 @@
->[!CAUTION]
->### This is in a very rough state right now and is not build/production ready yet
->- References to the UnityEditor namespace are everywhere and are not guarded by preprocessor conditions. This means you will not be able to successfully build your project.
+>[!WARNING]
+>### This is in a very rough state right now and is not production ready yet
+>- Has not been tested in builds (Does successfully build however)
 >- Asset browser does not show preview images for content
 >- Has only been tested on content from 2013 Source Engine games, specifically Garry's Mod, Half Life 2, and Counter Strike: Source files.
 >
@@ -25,8 +25,8 @@ In addition an Asset Browser is provided that allows users to browse and import 
 |bsp|Compiled Level|In the future|:x:|
 |pcf|Particles|In the future|:x:|
 
->[!NOTE]
->VMF files use [RealtimeCSG](https://realtimecsg.com/) brushes for the level geometry. It is provided in this repo.
+>[!IMPORTANT]
+>VMF files use [RealtimeCSG](https://realtimecsg.com/) brushes for the level geometry and is required for this tool.
 
 ## MDL Data Support Status
 |MDL Data|Status||
