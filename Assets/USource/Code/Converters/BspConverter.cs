@@ -23,13 +23,18 @@ namespace USource.Converters
         {
             BspEntity skyCamera = bspFile.entities.FirstOrDefault(e => e.values.TryGetValue("classname", out string className) && className == "sky_camera");
             HashSet<int> skyLeafFaces = new();
+            HashSet<ushort> skyLeafs = new();
 
             if (importOptions.cullSkybox && skyCamera != null && skyCamera.TryGetTransformedVector3("origin", out Vector3 cameraPosition))
             {
                 dleaf_t skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(cameraPosition));
-                foreach (dleaf_t leafFace in bspFile.leafs.Where(e => e.cluster == skyBoxLeaf.cluster))
+                for (int i = 0; i < bspFile.leafs.Length; i++)
                 {
-                    for (ushort leafIndex = leafFace.firstLeafFace; leafIndex < leafFace.firstLeafFace + leafFace.numLeafFaces; leafIndex++)
+                    dleaf_t leaf = bspFile.leafs[i];
+                    if (leaf.cluster != skyBoxLeaf.cluster) continue;
+
+                    skyLeafs.Add((ushort)i);
+                    for (ushort leafIndex = leaf.firstLeafFace; leafIndex < leaf.firstLeafFace + leaf.numLeafFaces; leafIndex++)
                     {
                         int faceIndex = bspFile.leafFaces[leafIndex];
                         if (!skyLeafFaces.Contains(faceIndex))
@@ -41,6 +46,7 @@ namespace USource.Converters
             GameObject worldGo = new GameObject(location.SourcePath);
             worldGo.isStatic = true;
 
+            // Brushes/World geometry
             for (int modelIndex = 0; modelIndex < bspFile.models.Length; modelIndex++)
             {
                 // Create a mapping of every material used
@@ -144,6 +150,28 @@ namespace USource.Converters
 #if UNITY_EDITOR
                 ctx.AssetImportContext.AddObjectToAsset($"mesh {modelIndex}", mesh);
 #endif
+            }
+
+            // Static props
+            for (int i = 0; i < bspFile.staticPropLumps.Length; i++)
+            {
+                if (skyLeafs.Contains(bspFile.staticPropLeafEntries[i])) continue;  // skip props in the skybox
+                StaticPropLump_t lump = bspFile.staticPropLumps[i];
+
+                if (USource.ResourceManager.GetUnityObject(new Location(bspFile.staticPropDict[lump.PropType], Location.Type.Source), out GameObject prefab, ctx.ImportMode, true))
+                {
+                    GameObject instance;
+#if UNITY_EDITOR
+                    instance = UnityEditor.PrefabUtility.InstantiatePrefab(prefab) as UnityEngine.GameObject;
+#else
+                    instance = GameObject.Instantiate(prefab);
+#endif
+                    if (instance == null) continue;
+
+                    instance.transform.position = lump.Origin;
+                    instance.transform.rotation = Quaternion.Euler(lump.Angles);
+                    instance.transform.parent = worldGo.transform;
+                }
             }
 
             return worldGo;

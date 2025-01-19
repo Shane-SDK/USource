@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Resources;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using USource.MathLib;
 
 namespace USource.Formats.Source.VBSP
 {
@@ -32,6 +34,12 @@ namespace USource.Formats.Source.VBSP
         public dnode_t[] nodes;
         public dleaf_t[] leafs;
         public ushort[] leafFaces;
+
+        public dgamelump_t[] gameLumps;
+
+        public string[] staticPropDict;
+        public ushort[] staticPropLeafEntries;
+        public StaticPropLump_t[] staticPropLumps;
 
         // ======== OTHER ======= //
 
@@ -171,6 +179,74 @@ namespace USource.Formats.Source.VBSP
 
             leafFaces = new ushort[header.Lumps[16].FileLen / 2];
             reader.ReadArray(ref leafFaces, header.Lumps[16].FileOfs);
+
+            reader.BaseStream.Seek(header.Lumps[35].FileOfs, SeekOrigin.Begin);
+            gameLumps = new dgamelump_t[reader.ReadInt32()];
+            reader.ReadArray(ref gameLumps, header.Lumps[35].FileOfs + 4);
+            
+            for (int i = 0; i < gameLumps.Length; i++)
+            {
+                if (gameLumps[i].Id == 1936749168)  // Static prop dictionary
+                {
+                    reader.BaseStream.Seek(gameLumps[i].FileOfs, SeekOrigin.Begin);
+                    staticPropDict = new String[reader.ReadInt32()];
+                    for (Int32 j = 0; j < staticPropDict.Length; j++)
+                    {
+                        staticPropDict[j] = new String(reader.ReadChars(128));
+
+                        if (staticPropDict[j].Contains('\0'))
+                            staticPropDict[j] = staticPropDict[j].Split('\0')[0];
+                    }
+
+                    staticPropLeafEntries = new ushort[reader.ReadInt32()];
+                    reader.ReadArray(ref staticPropLeafEntries);
+
+                    long nStaticProps = reader.ReadInt32();
+                    staticPropLumps = new StaticPropLump_t[nStaticProps];
+                    long staticPropSize = (gameLumps[i].FileLen - (reader.BaseStream.Position - gameLumps[i].FileOfs)) / nStaticProps;
+                    long staticPropLumpStart = reader.BaseStream.Position;
+
+                    for (long l = 0; l < nStaticProps; l++)
+                    {
+                        ushort pathIndex;
+                        Vector3 m_Origin;
+                        Vector3 m_Angles;
+
+                        reader.BaseStream.Position = staticPropLumpStart + l * staticPropSize;
+                        switch (gameLumps[i].Version)
+                        {
+                            case 11:
+                                StaticPropLumpV11_t StaticPropLumpV11_t = new StaticPropLumpV11_t();
+                                reader.ReadType(ref StaticPropLumpV11_t);
+
+                                pathIndex = StaticPropLumpV11_t.m_PropType;
+                                m_Origin = Converters.Converter.SourceTransformPointHammer(StaticPropLumpV11_t.m_Origin);
+                                m_Angles = Converters.Converter.SourceTransformAnglesHammer(StaticPropLumpV11_t.m_Angles);
+
+                                break;
+                            case 600:
+                                StaticPropLumpV6_t propLump = new StaticPropLumpV6_t();
+                                reader.ReadType(ref propLump);
+
+                                pathIndex = propLump.m_PropType;
+                                m_Origin = Converters.Converter.SourceTransformPointHammer(propLump.m_Origin);
+                                m_Angles = Converters.Converter.SourceTransformAnglesHammer(propLump.m_Angles);
+
+                                break;
+                            default:
+                                StaticPropLumpV4_t StaticPropLumpV4_t = new StaticPropLumpV4_t();
+                                reader.ReadType(ref StaticPropLumpV4_t);
+
+                                pathIndex = StaticPropLumpV4_t.m_PropType;
+                                m_Origin = Converters.Converter.SourceTransformPointHammer(StaticPropLumpV4_t.m_Origin);
+                                m_Angles = Converters.Converter.SourceTransformAnglesHammer(StaticPropLumpV4_t.m_Angles);
+                                break;
+                        }
+
+                        staticPropLumps[l] = new StaticPropLump_t { Angles = m_Angles, Origin = m_Origin, PropType = pathIndex };
+                    }
+                }
+            }
         }
 
     }
@@ -189,4 +265,31 @@ namespace USource.Formats.Source.VBSP
             return false;
         }
     }
+    public struct StaticPropLump_t
+    {
+        public Vector3 Origin;            // origin
+        public Vector3 Angles;            // orientation (pitch yaw roll)
+        public ushort PropType;          // index into model name dictionary
+        public ushort FirstLeaf;         // index into leaf array
+        public ushort LeafCount;
+        public byte Solid;             // solidity type
+        public int Skin;              // model skin numbers
+        public float FadeMinDist;
+        public float FadeMaxDist;
+        public Vector3 LightingOrigin;    // for lighting
+        public float ForcedFadeScale;   // fade distance scale
+        public ushort MinDXLevel;        // minimum DirectX version to be visible
+        public ushort MaxDXLevel;        // maximum DirectX version to be visible
+        public uint Flags;
+        public ushort LightmapResX;      // lightmap image width
+        public ushort LightmapResY;      // lightmap image height
+        public byte MinCPULevel;
+        public byte MaxCPULevel;
+        public byte MinGPULevel;
+        public byte MaxGPULevel;
+        public Color32 DiffuseModulation; // per instance color and alpha modulation
+        public bool DisableX360;       // if true, don't show on XBox 360 (4-bytes long)
+        public uint FlagsEx;           // Further bitflags.
+        public float UniformScale;      // Prop scale
+    };
 }

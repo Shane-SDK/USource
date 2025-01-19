@@ -78,7 +78,7 @@ namespace USource.AssetImporters
                     else if (USource.ResourceManager.GetUnityObject(new Location(location.SourcePath.Replace("ft.vmt", sourceSide), Location.Type.Source), out UnityEngine.Material skySideMaterial, ImportMode.AssetDatabase, true))
                     {
                         // Update texture importer to clamp texture
-                        skySideMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
+                        //skySideMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
                         //VtfImporter textureImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texResource.mainTexture)) as VtfImporter;
                         //textureImporter.wrapMode = TextureWrapMode.Clamp;
                         skyboxMaterial.SetTexture(unitySide, skySideMaterial.mainTexture);

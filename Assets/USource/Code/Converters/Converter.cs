@@ -128,6 +128,15 @@ namespace USource.Converters
                 Quaternion.AngleAxis(sourceAngles[2], Vector3.right)
                 ).eulerAngles;
         }
+        public static Vector3 SourceTransformAnglesHammer(Vector3 sourceAngles)
+        {
+            //sourceAngles = AxisConvertSource(sourceAngles);
+            return (
+                Quaternion.AngleAxis(-sourceAngles[1] + 90, Vector3.up) *
+                Quaternion.AngleAxis(sourceAngles[0], Vector3.forward) *
+                Quaternion.AngleAxis(sourceAngles[2], Vector3.right)
+                ).eulerAngles;
+        }
         public static Vector3 AxisConvertSource(Vector3 sourceAxis) => new Vector3(sourceAxis.x, sourceAxis.z, sourceAxis.y);
 
         

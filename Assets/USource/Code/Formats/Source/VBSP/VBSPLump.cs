@@ -47,8 +47,9 @@ namespace USource.Formats.Source.VBSP
 			public Vector3 m_LightingOrigin;
 		}
 
-		/// <summary>Game lump: Static prop. V5. Size: 60 bytes</summary>
-		public struct StaticPropLumpV5_t
+        /// <summary>Game lump: Static prop. V5. Size: 60 bytes</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct StaticPropLumpV5_t
 		{
 			public Vector3 m_Origin;
 			public Vector3 m_Angles;
@@ -65,8 +66,9 @@ namespace USource.Formats.Source.VBSP
 			//	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
 		}
 
-		/// <summary>Game lump: Static prop. V6. Size: 64 bytes</summary>
-		public struct StaticPropLumpV6_t
+        /// <summary>Game lump: Static prop. V6. Size: 64 bytes</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct StaticPropLumpV6_t
 		{
 			public Vector3 m_Origin;
 			public Vector3 m_Angles;
@@ -74,7 +76,7 @@ namespace USource.Formats.Source.VBSP
 			public ushort m_FirstLeaf;
 			public ushort m_LeafCount;
 			public byte m_Solid;
-			public STATICPROP_FLAGS m_Flags;
+			public int m_Flags;
 			public int m_Skin;
 			public float m_FadeMinDist;
 			public float m_FadeMaxDist;
@@ -85,8 +87,9 @@ namespace USource.Formats.Source.VBSP
 			//	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
 		}
 
-		/// <summary>Game lump: Static prop. V7. Size: 68 bytes</summary>
-		public struct StaticPropLumpV7_t
+        /// <summary>Game lump: Static prop. V7. Size: 68 bytes</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct StaticPropLumpV7_t
 		{
 			public Vector3 m_Origin;
 			public Vector3 m_Angles;
@@ -106,8 +109,9 @@ namespace USource.Formats.Source.VBSP
 			public Color32 m_DiffuseModulation;    // per instance color and alpha modulation
 		}
 
-		/// <summary>Game lump: Static prop. V8. Size: 68 bytes</summary>
-		public struct StaticPropLumpV8_t
+        /// <summary>Game lump: Static prop. V8. Size: 68 bytes</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct StaticPropLumpV8_t
 		{
 			public Vector3 m_Origin;
 			public Vector3 m_Angles;
@@ -129,8 +133,9 @@ namespace USource.Formats.Source.VBSP
 			public Color32 m_DiffuseModulation;    // per instance color and alpha modulation
 		}
 
-		/// <summary>Game lump: Static prop. V9. Size: 72 bytes</summary>
-		public struct StaticPropLumpV9_t
+        /// <summary>Game lump: Static prop. V9. Size: 72 bytes</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct StaticPropLumpV9_t
 		{
 			public Vector3 m_Origin;
 			public Vector3 m_Angles;
@@ -153,8 +158,9 @@ namespace USource.Formats.Source.VBSP
 			public bool m_bDisableX360; // if true, don't show on XBox 360 (4-bytes long)
 		}
 
-		/// <summary>Game lump: Static prop. V10. Size: 76 bytes</summary>
-		public struct StaticPropLumpV10_t
+        /// <summary>Game lump: Static prop. V10. Size: 76 bytes</summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct StaticPropLumpV10_t
 		{
 			public Vector3 m_Origin;
 			public Vector3 m_Angles;
