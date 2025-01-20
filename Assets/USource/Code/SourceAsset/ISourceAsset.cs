@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Collections.Generic;
 using USource.Converters;
+using System.Linq;
 
 namespace USource.SourceAsset
 {
@@ -33,6 +34,21 @@ namespace USource.SourceAsset
             {
                 tree.Add(dependency);
             }
+        }
+        public static bool TryResolvePatchMaterial(Location materialLocation, out Location patchedMaterial)
+        {
+            patchedMaterial = default;
+            if (USource.ResourceManager.GetStream(materialLocation, out Stream matStream, ImportMode.CreateAndCache))
+            {
+                KeyValues keys = KeyValues.FromStream(matStream);
+                if (keys.First().Key == "patch" && keys.First().Value.ContainsKey("include"))
+                {
+                    // use include key material instead of this
+                    patchedMaterial = new Location(keys.First().Value["include"], Location.Type.Source, materialLocation.ResourceProvider);
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

@@ -46,6 +46,10 @@ namespace USource.SourceAsset
                     // Get material
                     if (!side.TryGetValue("material", out string materialPath)) continue;
                     Location location = new Location($"materials/{materialPath}.vmt", Location.Type.Source);
+
+                    if (ISourceAsset.TryResolvePatchMaterial(location, out Location patchedMaterial))
+                        location = patchedMaterial;
+
                     if (!dependencySet.Contains(location))
                     {
                         dependencySet.Add(location);

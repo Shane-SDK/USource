@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using USource.Converters;
 using static USource.Formats.Source.VBSP.VBSPStruct;
@@ -21,7 +22,6 @@ namespace USource.SourceAsset
             // Add models from props/point entities
             // sky???
 
-
             UReader reader = new UReader(stream);
             dheader_t header = default;
             reader.ReadType(ref header);
@@ -33,7 +33,11 @@ namespace USource.SourceAsset
             for (int i = 0; i < textureCount; i++)
             {
                 string materialPath = $"materials/{reader.ReadNullTerminatedString(header.Lumps[43].FileOfs + indexArray[i]).ToLower()}.vmt";
-                ISourceAsset.AddDependency(new Location(materialPath, Location.Type.Source, Location.ResourceProvider), tree, recursive, mode);
+                // check if material uses %include
+                Location materialLocation = new Location(materialPath, Location.Type.Source, Location.ResourceProvider);
+                if (ISourceAsset.TryResolvePatchMaterial(materialLocation, out Location patchedMaterial))
+                    materialLocation = patchedMaterial;
+                ISourceAsset.AddDependency(materialLocation, tree, recursive, mode);
             }
 
             reader.BaseStream.Seek(header.Lumps[35].FileOfs, SeekOrigin.Begin);

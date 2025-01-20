@@ -5,6 +5,7 @@ using System.Resources;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using USource.MathLib;
+using USource.SourceAsset;
 
 namespace USource.Formats.Source.VBSP
 {
@@ -120,6 +121,17 @@ namespace USource.Formats.Source.VBSP
 
             for (Int32 i = 0; i < BSP_TextureStringTable.Length; i++)
                 textureStringData[i] = reader.ReadNullTerminatedString(header.Lumps[43].FileOfs + BSP_TextureStringTable[i]);
+
+            // Replace patched materials
+            for (int i = 0; i < textureStringData.Length; i++)
+            {
+                if (ISourceAsset.TryResolvePatchMaterial(new Location($"materials/{textureStringData[i]}.vmt", Location.Type.Source), out Location patchedMaterial))
+                {
+                    int startIndex = 9;
+                    int endIndex = patchedMaterial.SourcePath.Length - 4;
+                    textureStringData[i] = patchedMaterial.SourcePath.Substring(9, endIndex - startIndex);
+                }
+            }
 
             edges = new dedge_t[header.Lumps[12].FileLen / 4];
             reader.ReadArray(ref edges, header.Lumps[12].FileOfs);

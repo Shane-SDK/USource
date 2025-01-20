@@ -118,11 +118,8 @@ namespace USource.Converters
 
                     Location location = new Location($"materials/{materialPath}.vmt", Location.Type.Source);
 
-
-                    //if (ResourceManager.TryResolveMaterialPath(location.SourcePath, out Location resolvedMaterial))
-                    //{
-                    //    location = resolvedMaterial;
-                    //}
+                    if (ISourceAsset.TryResolvePatchMaterial(location, out Location patchedMaterial))
+                        location = patchedMaterial;
 
                     if (!USource.ResourceManager.GetUnityObject(location, out UnityEngine.Material resourceMaterial, ctx.ImportMode, true))
                         resourceMaterial = Resources.Load<UnityEngine.Material>("Error");
