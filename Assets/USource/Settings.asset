@@ -19,4 +19,4 @@ MonoBehaviour:
   gamePaths:
   - D:/SteamLibrary/steamapps/common/GarrysMod/garrysmod
   - D:/SteamLibrary/steamapps/common/Counter-Strike Source/cstrike
-  readBSPFiles: 0
+  readBSPFiles: 1
