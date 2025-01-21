@@ -41,6 +41,8 @@ namespace USource.Converters
             HashSet<ushort> skyLeafs = new();
             short skyLeafCluster = 0;
 
+            Dictionary<int, GameObject> bModelMap = new();
+
             if (importOptions.cullSkybox && skyCamera != null && skyCamera.TryGetTransformedVector3("origin", out Vector3 cameraPosition))
             {
                 dleaf_t skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(cameraPosition));
@@ -63,17 +65,19 @@ namespace USource.Converters
             GameObject worldGo = new GameObject(location.SourcePath);
             worldGo.isStatic = true;
 
-            // Brushes/World geometry
-            for (int modelIndex = 0; modelIndex < Mathf.Min(1, bspFile.models.Length); modelIndex++)
-            {
-                GameObject modelGO = new GameObject($"[{modelIndex}] Model");
-                modelGO.isStatic = true;
-                modelGO.transform.parent = worldGo.transform;
+            GameObject worldGeometryGO = new GameObject("World Geometry");
+            worldGeometryGO.isStatic = true;
+            worldGeometryGO.transform.parent = worldGo.transform;
 
+            // Brushes/World geometry
+            for (int modelIndex = 0; modelIndex < bspFile.models.Length; modelIndex++)
+            {
                 dmodel_t model = bspFile.models[modelIndex];
 
                 if (importOptions.splitWorldGeometry)
                 {
+                    GameObject modelGO = null;
+
                     int modelFaceStart = model.FirstFace;
                     int modelFacesEnd = model.FirstFace + model.NumFaces;
 
@@ -96,6 +100,15 @@ namespace USource.Converters
 
                         if (!meshData.HasGeometry) continue;
 
+                        if (modelGO == null)
+                        {
+                            modelGO = new GameObject($"[{modelIndex}] Model");
+                            modelGO.isStatic = true;
+                            modelGO.transform.parent = worldGeometryGO.transform;
+                            modelGO.transform.position = model.Origin;
+                            bModelMap[modelIndex] = modelGO;
+                        }
+
                         GameObject leafGO = new GameObject($"{leafIndex}");
                         leafGO.isStatic = true;
                         leafGO.transform.parent = modelGO.transform;
@@ -114,6 +127,12 @@ namespace USource.Converters
                     }
 
                     if (!meshData.HasGeometry) continue;
+
+                    GameObject modelGO = new GameObject($"[{modelIndex}] Model");
+                    modelGO.isStatic = true;
+                    modelGO.transform.parent = worldGeometryGO.transform;
+                    modelGO.transform.position = model.Origin;
+                    bModelMap[modelIndex] = modelGO;
 
                     meshData.CreateMesh(modelGO, ctx);
                 }
@@ -143,6 +162,97 @@ namespace USource.Converters
                     instance.transform.position = lump.Origin;
                     instance.transform.rotation = Quaternion.Euler(lump.Angles);
                     instance.transform.parent = staticPropsGO.transform;
+                }
+            }
+
+            // Entities
+            for (int entityIndex = 0; entityIndex < bspFile.entities.Count; entityIndex++)
+            {
+                BspEntity entity = bspFile.entities[entityIndex];
+
+                entity.TryGetTransformedVector3("origin", out Vector3 position);
+                entity.TryGetTransformedVector3("angles", out Vector3 angles);
+                entity.TryGetValue("classname", out string className);
+                if (entity.TryGetFloat("pitch", out float pitch))
+                {
+                    angles.x = -pitch;
+                }
+
+                GameObject CreateEntityGO(bool isStatic = false)
+                {
+                    GameObject go = new GameObject($"[{entityIndex}] {className}");
+                    go.transform.parent = worldGo.transform;
+                    go.transform.position = position;
+                    go.transform.rotation= Quaternion.Euler(angles);
+                    go.isStatic = isStatic;
+                    return go;
+                }
+
+                if (entity.TryGetValue("model", out string modelValue))
+                {
+                    if (modelValue.StartsWith('*'))  // Brush model
+                    {
+                        if (int.TryParse(modelValue.Substring(1, (modelValue.Length - 1)), out int brushModelIndex) && bModelMap.TryGetValue(brushModelIndex, out GameObject modelGO))
+                        {
+                            modelGO.transform.position = position;
+                        }
+                    }
+                    else if (USource.ResourceManager.GetUnityObject(new Location(modelValue, Location.Type.Source), out GameObject prefab, ctx.ImportMode, true))  // studioprop model
+                    {
+                        GameObject instance;
+#if UNITY_EDITOR
+                        instance = UnityEditor.PrefabUtility.InstantiatePrefab(prefab) as UnityEngine.GameObject;
+#else
+                        instance = GameObject.Instantiate(prefab);
+#endif
+                        if (instance == null) continue;
+
+                        instance.name = $"[{entityIndex}] {instance.name}";
+                        instance.transform.position = position;
+                        instance.transform.rotation = Quaternion.Euler(angles);
+                        instance.transform.parent = worldGo.transform;
+                    }
+                }
+
+                if (className.Contains("light"))
+                {
+                    LightType type = LightType.Point;
+
+                    switch (className)
+                    {
+                        case "light_directional": case "light_environment":
+                            type = LightType.Directional; break;
+                        case "light_spot":
+                            type = LightType.Spot; break;
+                    }
+
+                    Color color = Color.white;
+                    float intensity = 2.0f;
+                    float range = 10;
+
+                    if (entity.TryGetVector4("_light", out Vector4 lightValues))
+                    {
+                        color = new Color(lightValues.x / 255, lightValues.y / 255, lightValues.z / 255);
+                        range = lightValues.w / 20;
+                        intensity = lightValues.w / (type == LightType.Directional ? 200 : 50);
+                    }
+
+                    Light light = CreateEntityGO(true).AddComponent<Light>();
+                    light.intensity = intensity;
+                    light.type = type;
+                    light.range = range;
+                    light.color = color;
+                    light.shadows = type == LightType.Directional ? LightShadows.Soft : LightShadows.Hard;
+#if UNITY_EDITOR
+                    light.lightmapBakeType = type == LightType.Directional ? LightmapBakeType.Mixed : LightmapBakeType.Baked;
+#endif
+
+                    if (entity.TryGetFloat("_cone", out float cone) && 
+                        entity.TryGetFloat("_inner_cone", out float innerCone))
+                    {
+                        light.innerSpotAngle = innerCone * 2.0f;
+                        light.spotAngle = cone * 2.0f;
+                    }
                 }
             }
 

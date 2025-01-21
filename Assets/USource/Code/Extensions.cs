@@ -136,6 +136,24 @@ namespace USource
             return true;
         }
 
+        public static bool TryParseVector4(string stringValue, out UnityEngine.Vector4 vector)
+        {
+            vector = default;
+
+            string[] splitValues = stringValue.Split(' ');
+            if (splitValues.Length < 4)
+                return false;
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (float.TryParse(splitValues[i], out float floatValue))
+                    vector[i] = floatValue;
+                else
+                    return false;
+            }
+
+            return true;
+        }
         public static Vector4 ToColorVec(this string param)
         {
             if (param == null) return new Color(0, 0, 0, 200);

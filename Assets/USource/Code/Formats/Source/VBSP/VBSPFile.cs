@@ -276,6 +276,25 @@ namespace USource.Formats.Source.VBSP
             unityPosition = default;
             return false;
         }
+        public bool TryGetVector4(string key, out Vector4 vector)
+        {
+            if (values.TryGetValue(key, out string posString) && Conversions.TryParseVector4(posString, out vector))
+            {
+                return true;
+            }
+
+            vector = default;
+            return false;
+        }
+        public bool TryGetValue(string key, out string value)
+        {
+            return values.TryGetValue(key, out value);
+        }
+        public bool TryGetFloat(string key, out float value)
+        {
+            value = default;
+            return TryGetValue(key, out string stringFloat) && float.TryParse(stringFloat, out value);
+        }
     }
     public struct StaticPropLump_t
     {

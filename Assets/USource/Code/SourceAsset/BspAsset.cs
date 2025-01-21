@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using USource.Converters;
+using USource.Formats.Source.VBSP;
 using static USource.Formats.Source.VBSP.VBSPStruct;
 
 namespace USource.SourceAsset
@@ -22,6 +25,7 @@ namespace USource.SourceAsset
             // Add models from props/point entities
             // sky???
 
+            HashSet<Location> importedLocations = new();
             UReader reader = new UReader(stream);
             dheader_t header = default;
             reader.ReadType(ref header);
@@ -40,6 +44,7 @@ namespace USource.SourceAsset
                 ISourceAsset.AddDependency(materialLocation, tree, recursive, mode);
             }
 
+            // Add static props
             reader.BaseStream.Seek(header.Lumps[35].FileOfs, SeekOrigin.Begin);
             dgamelump_t[] gameLumps = new dgamelump_t[reader.ReadInt32()];
             reader.ReadArray(ref gameLumps, header.Lumps[35].FileOfs + 4);
@@ -56,8 +61,51 @@ namespace USource.SourceAsset
 
                         if (propPath.Contains('\0'))
                             propPath = propPath.Split('\0')[0];
-
+                        importedLocations.Add(new Location(propPath, Location.Type.Source));
                         ISourceAsset.AddDependency(new Location(propPath, Location.Type.Source, Location.ResourceProvider), tree, recursive, mode);
+                    }
+                }
+            }
+
+            // Entities
+            reader.BaseStream.Seek(header.Lumps[0].FileOfs, SeekOrigin.Begin);
+            MatchCollection Matches = Regex.Matches(
+                new(reader.ReadChars(header.Lumps[0].FileLen)),
+                @"{[^}]*}", RegexOptions.IgnoreCase);
+
+ 
+            int[] quoteIndexBuffer = new int[4];
+            foreach (Match m in Matches)
+            {
+                string[] lines = m.Value.Trim('{', '}', ' ').Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length == 0) continue;
+
+                foreach (string line in lines)
+                {
+                    int quoteCount = 0;
+                    for (int i = 0; i < line.Length; i++)
+                    {
+                        if (line[i] == '"')
+                        {
+                            quoteIndexBuffer[quoteCount] = i;
+                            quoteCount++;
+                            if (quoteCount >= 4)
+                                break;
+                        }  // Find quotes
+                    }
+                    if (quoteCount < 3) break;
+
+                    string key = line.Substring(quoteIndexBuffer[0] + 1, (quoteIndexBuffer[1] - quoteIndexBuffer[0] - 1));
+                    string value = line.Substring(quoteIndexBuffer[2] + 1, (quoteIndexBuffer[3] - quoteIndexBuffer[2] - 1));
+
+                    if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(key)) break;
+
+                    Location location = new Location(value, Location.Type.Source);
+
+                    if (!importedLocations.Contains(location) && key == "model" && value.Length > 0 && value[0] != '*')
+                    {
+                        importedLocations.Add(location);
+                        ISourceAsset.AddDependency(new Location(value, Location.Type.Source), tree, recursive, mode);
                     }
                 }
             }
