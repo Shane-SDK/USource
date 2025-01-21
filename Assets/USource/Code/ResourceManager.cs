@@ -180,6 +180,10 @@ namespace USource
                 stream.Close();
             }
 
+//#if UNITY_EDITOR
+//            UnityEditor.AssetDatabase.Refresh();
+//#endif
+
             return unityObject != null;
         }
 #if UNITY_EDITOR

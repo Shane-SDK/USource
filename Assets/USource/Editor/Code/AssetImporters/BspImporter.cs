@@ -12,18 +12,23 @@ namespace USource.AssetImporters
     [ScriptedImporter(0, "bsp")]
     public class BspImporter : ScriptedImporter
     {
-        public BspConverter.ImportOptions importOptions;
+        public BspConverter.ImportOptions importOptions = new BspConverter.ImportOptions { cullSkybox = true, setupDependencies = false, splitWorldGeometry = true };
         public override void OnImportAsset(AssetImportContext ctx)
         {
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
             BspConverter converter = new BspConverter(location.SourcePath, System.IO.File.OpenRead(ctx.assetPath), importOptions);
-            ISourceAsset bspAsset = ISourceAsset.FromLocation(location);
-            DependencyTree tree = new(location);
-            bspAsset.GetDependencies(System.IO.File.OpenRead(ctx.assetPath), tree, false, ImportMode.CreateAndCache);
-            foreach (Location child in tree.GetImmediateChildren(false))
+
+            if (importOptions.setupDependencies)
             {
-                ctx.DependsOnArtifact(child.AssetPath);
+                ISourceAsset bspAsset = ISourceAsset.FromLocation(location);
+                DependencyTree tree = new(location);
+                bspAsset.GetDependencies(System.IO.File.OpenRead(ctx.assetPath), tree, false, ImportMode.CreateAndCache);
+                foreach (Location child in tree.GetImmediateChildren(false))
+                {
+                    ctx.DependsOnArtifact(child.AssetPath);
+                }
             }
+
             UnityEngine.Object obj = converter.CreateAsset(new ImportContext( ImportMode.AssetDatabase, ctx));
             ctx.AddObjectToAsset("go", obj);
             ctx.SetMainObject(obj);

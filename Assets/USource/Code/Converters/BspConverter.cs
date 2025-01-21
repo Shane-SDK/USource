@@ -37,7 +37,7 @@ namespace USource.Converters
         public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             BspEntity skyCamera = bspFile.entities.FirstOrDefault(e => e.values.TryGetValue("classname", out string className) && className == "sky_camera");
-            HashSet<int> skyLeafFaces = new();
+            HashSet<int> skyFaces = new();
             HashSet<ushort> skyLeafs = new();
             short skyLeafCluster = 0;
 
@@ -54,8 +54,8 @@ namespace USource.Converters
                     for (ushort leafIndex = leaf.firstLeafFace; leafIndex < leaf.firstLeafFace + leaf.numLeafFaces; leafIndex++)
                     {
                         int faceIndex = bspFile.leafFaces[leafIndex];
-                        if (!skyLeafFaces.Contains(faceIndex))
-                            skyLeafFaces.Add(faceIndex);
+                        if (!skyFaces.Contains(faceIndex))
+                            skyFaces.Add(faceIndex);
                     }
                 }
             }
@@ -63,274 +63,61 @@ namespace USource.Converters
             GameObject worldGo = new GameObject(location.SourcePath);
             worldGo.isStatic = true;
 
-            // MERGE THIS CODE AT SOME POINT
-
-            if (importOptions.splitWorldGeometry)
+            // Brushes/World geometry
+            for (int modelIndex = 0; modelIndex < Mathf.Min(1, bspFile.models.Length); modelIndex++)
             {
-                GameObject leafGO = new GameObject($"World Geometry");
-                leafGO.transform.parent = worldGo.transform;
-                leafGO.isStatic = true;
+                GameObject modelGO = new GameObject($"[{modelIndex}] Model");
+                modelGO.isStatic = true;
+                modelGO.transform.parent = worldGo.transform;
 
-                int modelFaceStart = bspFile.models[0].FirstFace;
-                int modelFacesEnd = bspFile.models[0].FirstFace + bspFile.models[0].NumFaces;
+                dmodel_t model = bspFile.models[modelIndex];
 
-                for (int leafIndex = 0; leafIndex < bspFile.leafs.Length; leafIndex++)
+                if (importOptions.splitWorldGeometry)
                 {
-                    // Get all faces that belong to this leaf
-                    dleaf_t leaf = bspFile.leafs[leafIndex];
+                    int modelFaceStart = model.FirstFace;
+                    int modelFacesEnd = model.FirstFace + model.NumFaces;
 
-                    if (leaf.cluster == skyLeafCluster && importOptions.cullSkybox) continue;
-
-                    // Create a mapping of every material used
-                    Dictionary<int, UnityEngine.Material> materialMap = new();
-                    List<WorldVertex> vertices = new();
-                    Dictionary<int, List<uint>> subMeshes = new();
-                    List<int> subMeshMap = new();
-
-                    for (int leafFaceIndex = leaf.firstLeafFace; leafFaceIndex < leaf.firstLeafFace + leaf.numLeafFaces; leafFaceIndex++)
+                    for (int leafIndex = 0; leafIndex < bspFile.leafs.Length; leafIndex++)
                     {
-                        ushort leafFace = bspFile.leafFaces[leafFaceIndex];
+                        // Get all faces that belong to this leaf
+                        dleaf_t leaf = bspFile.leafs[leafIndex];
 
-                        if (leafFace < modelFaceStart || leafFace >=  modelFacesEnd) continue;
+                        if (leaf.cluster == skyLeafCluster && importOptions.cullSkybox) continue;
 
-                        dface_t face = bspFile.faces[leafFace];
-
-                        if (face.DispInfo != -1) continue;
-
-                        texinfo_t textureInfo = bspFile.texInfo[face.TexInfo];
-                        dtexdata_t textureData = bspFile.texData[textureInfo.TexData];
-                        string materialPath = bspFile.textureStringData[textureData.NameStringTableID].ToLower();
-
-                        if (USource.noRenderMaterials.Contains(materialPath) || USource.noCreateMaterials.Contains(materialPath))  // Don't include sky and other tool textures
-                            continue;
-
-                        if (!subMeshes.TryGetValue(textureData.NameStringTableID, out List<uint> subIndices))  // Ensure submesh/indices exist
+                        MeshData meshData = new MeshData(bspFile, leafIndex);
+                        for (int leafFaceIndex = leaf.firstLeafFace; leafFaceIndex < leaf.firstLeafFace + leaf.numLeafFaces; leafFaceIndex++)
                         {
-                            subMeshMap.Add(textureData.NameStringTableID);
-                            subIndices = new();
-                            subMeshes[textureData.NameStringTableID] = subIndices;
+                            ushort faceIndex = bspFile.leafFaces[leafFaceIndex];
+
+                            if (faceIndex < modelFaceStart || faceIndex >= modelFacesEnd) continue;
+
+                            meshData.AddFace(ref bspFile.faces[faceIndex]);
                         }
 
-                        for (int index = 1, k = 0; index < face.NumEdges - 1; index++, k += 3)
-                        {
-                            subIndices.Add((uint)vertices.Count);
-                            subIndices.Add((uint)(vertices.Count + index));
-                            subIndices.Add((uint)(vertices.Count + index + 1));
-                        }
+                        if (!meshData.HasGeometry) continue;
 
-                        Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, textureInfo.TextureVecs[0].x);
-                        Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, textureInfo.TextureVecs[1].x);
+                        GameObject leafGO = new GameObject($"{leafIndex}");
+                        leafGO.isStatic = true;
+                        leafGO.transform.parent = modelGO.transform;
 
-                        for (int surfEdgeIndex = face.FirstEdge; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++)
-                        {
-                            int surfEdge = bspFile.surfEdges[surfEdgeIndex];
-                            int edgeIndex = surfEdge > 0 ? 0 : 1;
-
-                            WorldVertex vertex = new();
-                            vertex.position = EnsureFinite(bspFile.vertices[bspFile.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
-                            float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
-                            float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
-                            vertex.uv = new half2(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
-
-                            vertices.Add(vertex);
-                        }
+                        meshData.CreateMesh(leafGO, ctx);
                     }
-
-                    if (vertices.Count == 0 || subMeshes.Count == 0) continue;
-
-                    GameObject modelGO = new GameObject($"{leafIndex}");
-                    modelGO.isStatic = true;
-                    //modelGO.transform.position = model.Origin;
-                    Mesh mesh = new Mesh();
-                    mesh.name = $"Mesh {leafIndex}";
-                    mesh.SetVertexBufferParams(vertices.Count, staticVertexDescriptor);
-                    mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0);
-                    mesh.subMeshCount = subMeshes.Count;
-
-                    List<Material> materials = new();
-                    List<SubMeshDescriptor> subMeshDescriptors = new();
-                    IndexFormat indexFormat = vertices.Count >= (1 << 16) ? IndexFormat.UInt32 : IndexFormat.UInt16;
-                    mesh.indexFormat = indexFormat;
-                    IList indices = indexFormat == IndexFormat.UInt32 ? new List<uint>() : new List<ushort>();
-                    for (int i = 0; i < subMeshMap.Count; i++)
-                    {
-                        int subMeshIndex = subMeshMap[i];
-                        // Create submeshdescriptors
-                        List<uint> subMeshIndices = subMeshes[subMeshIndex];
-                        subMeshDescriptors.Add(new SubMeshDescriptor(indices.Count, subMeshIndices.Count, MeshTopology.Triangles));
-
-                        // Get Unity materials
-                        if (!USource.ResourceManager.GetUnityObject(new Location($"materials/{bspFile.textureStringData[subMeshIndex]}.vmt", Location.Type.Source), out Material material, ctx.ImportMode, true))
-                            material = new Material(Shader.Find("Shader Graphs/Error"));
-                        materials.Add(material);
-
-                        // Transfer triangles
-                        if (indexFormat == IndexFormat.UInt16)
-                        {
-                            List<ushort> castList = indices as List<ushort>;
-                            foreach (uint index in subMeshIndices)
-                                castList.Add((ushort)index);
-                        }
-                        else
-                        {
-                            List<uint> castList = indices as List<uint>;
-                            castList.AddRange(subMeshIndices);
-                        }
-                    }
-
-                    mesh.SetIndexBufferParams(indices.Count, indexFormat);
-                    if (indexFormat == IndexFormat.UInt16)
-                        mesh.SetIndexBufferData(indices as List<ushort>, 0, 0, indices.Count);
-                    else
-                        mesh.SetIndexBufferData(indices as List<uint>, 0, 0, indices.Count);
-
-                    mesh.SetSubMeshes(subMeshDescriptors);
-
-                    mesh.RecalculateBounds();
-                    mesh.RecalculateNormals();
-                    mesh.RecalculateTangents();
-#if UNITY_EDITOR
-                    UnityEditor.Unwrapping.GenerateSecondaryUVSet(mesh);
-#endif
-                    mesh.UploadMeshData(true);
-
-                    modelGO.AddComponent<MeshFilter>().sharedMesh = mesh;
-                    modelGO.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
-                    modelGO.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.TwoSided;
-                    modelGO.transform.parent = leafGO.transform;
-
-#if UNITY_EDITOR
-                    ctx.AssetImportContext.AddObjectToAsset($"mesh {leafIndex}", mesh);
-#endif
                 }
-            }
-            else
-            {
-                // Brushes/World geometry
-                for (int modelIndex = 0; modelIndex < Mathf.Min(1, bspFile.models.Length); modelIndex++)
+                else
                 {
-                    // Create a mapping of every material used
-                    Dictionary<int, UnityEngine.Material> materialMap = new();
-                    List<WorldVertex> vertices = new();
-                    Dictionary<int, List<uint>> subMeshes = new();
-                    List<int> subMeshMap = new();
-
-                    dmodel_t model = bspFile.models[modelIndex];
-
+                    MeshData meshData = new MeshData(bspFile, modelIndex);
                     for (int faceIndex = model.FirstFace; faceIndex < model.FirstFace + model.NumFaces; faceIndex++)
                     {
-                        if (skyLeafFaces.Contains(faceIndex)) continue;
+                        if (skyFaces.Contains(faceIndex)) continue;
 
-                        dface_t face = bspFile.faces[faceIndex];
-                        if (face.DispInfo != -1) continue;
-                        texinfo_t textureInfo = bspFile.texInfo[face.TexInfo];
-                        dtexdata_t textureData = bspFile.texData[textureInfo.TexData];
-                        string materialPath = bspFile.textureStringData[textureData.NameStringTableID].ToLower();
-
-                        if (USource.noRenderMaterials.Contains(materialPath) || USource.noCreateMaterials.Contains(materialPath))  // Don't include sky and other tool textures
-                            continue;
-
-                        if (!subMeshes.TryGetValue(textureData.NameStringTableID, out List<uint> subIndices))  // Ensure submesh/indices exist
-                    {
-                        subMeshMap.Add(textureData.NameStringTableID);
-                        subIndices = new();
-                        subMeshes[textureData.NameStringTableID] = subIndices;
-                    }
-                        
-                        for (int index = 1, k = 0; index < face.NumEdges - 1; index++, k += 3)
-                    {
-                        subIndices.Add((uint)vertices.Count);
-                        subIndices.Add((uint)(vertices.Count + index));
-                        subIndices.Add((uint)(vertices.Count + index + 1));
+                        meshData.AddFace(ref bspFile.faces[faceIndex]);
                     }
 
-                        Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, textureInfo.TextureVecs[0].x);
-                        Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, textureInfo.TextureVecs[1].x);
+                    if (!meshData.HasGeometry) continue;
 
-                        for (int surfEdgeIndex = face.FirstEdge; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++)
-                        {
-                            int surfEdge = bspFile.surfEdges[surfEdgeIndex];
-                            int edgeIndex = surfEdge > 0 ? 0 : 1;
-
-                            WorldVertex vertex = new();
-                            vertex.position = EnsureFinite(bspFile.vertices[bspFile.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
-                            float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
-                            float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
-                            vertex.uv = new half2(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
-
-                            vertices.Add(vertex);
-                        }
-                    }
-
-                    if (vertices.Count == 0 || subMeshes.Count == 0) continue;
-
-                    GameObject modelGO = new GameObject($"Model {modelIndex}");
-                    modelGO.isStatic = true;
-                    modelGO.transform.position = model.Origin;
-                    Mesh mesh = new Mesh();
-                    mesh.name = $"Mesh {modelIndex}";
-                    mesh.SetVertexBufferParams(vertices.Count, staticVertexDescriptor);
-                    mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0);
-                    mesh.subMeshCount = subMeshes.Count;
-
-                    List<Material> materials = new();
-                    List<SubMeshDescriptor> subMeshDescriptors = new();
-                    IndexFormat indexFormat = vertices.Count >= (1 << 16) ? IndexFormat.UInt32 : IndexFormat.UInt16;
-                    mesh.indexFormat = indexFormat;
-                    IList indices = indexFormat == IndexFormat.UInt32 ? new List<uint>() : new List<ushort>();
-                    for (int i = 0; i < subMeshMap.Count; i++)
-                {
-                    int subMeshIndex = subMeshMap[i];
-                    // Create submeshdescriptors
-                    List<uint> subMeshIndices = subMeshes[subMeshIndex];
-                    subMeshDescriptors.Add(new SubMeshDescriptor(indices.Count, subMeshIndices.Count, MeshTopology.Triangles));
-
-                    // Get Unity materials
-                    if (!USource.ResourceManager.GetUnityObject(new Location($"materials/{bspFile.textureStringData[subMeshIndex]}.vmt", Location.Type.Source), out Material material, ctx.ImportMode, true))
-                        material = new Material(Shader.Find("Shader Graphs/Error"));
-                    materials.Add(material);
-
-                    // Transfer triangles
-                    if (indexFormat == IndexFormat.UInt16)
-                    {
-                        List<ushort> castList = indices as List<ushort>;
-                        foreach (uint index in subMeshIndices)
-                            castList.Add((ushort)index);
-                    }
-                    else
-                    {
-                        List<uint> castList = indices as List<uint>;
-                        castList.AddRange(subMeshIndices);
-                    }
-                }
-
-                    mesh.SetIndexBufferParams(indices.Count, indexFormat);
-                    if (indexFormat == IndexFormat.UInt16)
-                        mesh.SetIndexBufferData(indices as List<ushort>, 0, 0, indices.Count);
-                    else
-                        mesh.SetIndexBufferData(indices as List<uint>, 0, 0, indices.Count);
-
-                    mesh.SetSubMeshes(subMeshDescriptors);
-
-                    mesh.RecalculateBounds();
-                    mesh.RecalculateNormals();
-                    mesh.RecalculateTangents();
-#if UNITY_EDITOR
-                    UnityEditor.Unwrapping.GenerateSecondaryUVSet(mesh);
-#endif
-                    mesh.UploadMeshData(true);
-
-                    modelGO.AddComponent<MeshFilter>().sharedMesh = mesh;
-                    modelGO.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
-                    modelGO.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.TwoSided;
-                    modelGO.transform.parent = worldGo.transform;
-
-#if UNITY_EDITOR
-                    ctx.AssetImportContext.AddObjectToAsset($"mesh {modelIndex}", mesh);
-#endif
+                    meshData.CreateMesh(modelGO, ctx);
                 }
             }
-
 
             // Static props
             GameObject staticPropsGO = new GameObject("Static Props");
@@ -361,11 +148,11 @@ namespace USource.Converters
 
             return worldGo;
         }
-        Vector3 EnsureFinite(Vector3 v)
+        public static Vector3 EnsureFinite(Vector3 v)
         {
             return new Vector3(float.IsInfinity(v.x) ? 0 : v.x, float.IsInfinity(v.y) ? 0 : v.y, float.IsInfinity(v.z) ? 0 : v.z);
         }
-        Vector2 EnsureFinite(Vector2 v)
+        public static Vector2 EnsureFinite(Vector2 v)
         {
             return new Vector2(float.IsInfinity(v.x) ? 0 : v.x, float.IsInfinity(v.y) ? 0 : v.y);
         }
@@ -374,6 +161,7 @@ namespace USource.Converters
         {
             public bool cullSkybox;
             public bool splitWorldGeometry;
+            public bool setupDependencies;
         }
         public struct WorldVertex
         {
@@ -381,6 +169,131 @@ namespace USource.Converters
             public Vector3 normal;
             public half2 uv;
             public half2 uv2;
+        }
+        public class MeshData
+        {
+            public MeshData(VBSPFile bsp, long key)
+            {
+                this.bsp = bsp;
+                vertices = new();
+                subMeshes = new();
+                subMeshMap = new();
+                this.key = key;
+            }
+            public bool HasGeometry => vertices.Count > 0 && subMeshes.Count > 0;
+            readonly VBSPFile bsp;
+            readonly long key;
+            List<WorldVertex> vertices;
+            Dictionary<int, List<uint>> subMeshes;
+            List<int> subMeshMap = new();
+            public void AddFace(ref dface_t face)
+            {
+                if (face.DispInfo != -1) return;
+
+                texinfo_t textureInfo = bsp.texInfo[face.TexInfo];
+                dtexdata_t textureData = bsp.texData[textureInfo.TexData];
+                string materialPath = bsp.textureStringData[textureData.NameStringTableID].ToLower();
+
+                if (USource.noRenderMaterials.Contains(materialPath) || USource.noCreateMaterials.Contains(materialPath))  // Don't include sky and other tool textures
+                    return;
+
+                if (!subMeshes.TryGetValue(textureData.NameStringTableID, out List<uint> subIndices))  // Ensure submesh/indices exist
+                {
+                    subMeshMap.Add(textureData.NameStringTableID);
+                    subIndices = new();
+                    subMeshes[textureData.NameStringTableID] = subIndices;
+                }
+
+                for (int index = 1, k = 0; index < face.NumEdges - 1; index++, k += 3)
+                {
+                    subIndices.Add((uint)vertices.Count);
+                    subIndices.Add((uint)(vertices.Count + index));
+                    subIndices.Add((uint)(vertices.Count + index + 1));
+                }
+
+                Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, textureInfo.TextureVecs[0].x);
+                Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, textureInfo.TextureVecs[1].x);
+
+                for (int surfEdgeIndex = face.FirstEdge; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++)
+                {
+                    int surfEdge = bsp.surfEdges[surfEdgeIndex];
+                    int edgeIndex = surfEdge > 0 ? 0 : 1;
+
+                    WorldVertex vertex = new();
+                    vertex.position = EnsureFinite(bsp.vertices[bsp.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
+                    float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
+                    float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
+                    vertex.uv = new half2(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
+
+                    vertices.Add(vertex);
+                }
+            }
+            public bool CreateMesh(GameObject targetGameObject, ImportContext ctx)
+            {
+                if (vertices.Count == 0 || subMeshes.Count == 0) return false;
+
+                Mesh mesh = new Mesh();
+                mesh.name = $"Mesh {key}";
+                mesh.SetVertexBufferParams(vertices.Count, staticVertexDescriptor);
+                mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0);
+                mesh.subMeshCount = subMeshes.Count;
+
+                List<Material> materials = new();
+                List<SubMeshDescriptor> subMeshDescriptors = new();
+                IndexFormat indexFormat = vertices.Count >= (1 << 16) ? IndexFormat.UInt32 : IndexFormat.UInt16;
+                mesh.indexFormat = indexFormat;
+                IList indices = indexFormat == IndexFormat.UInt32 ? new List<uint>() : new List<ushort>();
+                for (int i = 0; i < subMeshMap.Count; i++)
+                {
+                    int subMeshIndex = subMeshMap[i];
+                    // Create submeshdescriptors
+                    List<uint> subMeshIndices = subMeshes[subMeshIndex];
+                    subMeshDescriptors.Add(new SubMeshDescriptor(indices.Count, subMeshIndices.Count, MeshTopology.Triangles));
+
+                    // Get Unity materials
+                    if (!USource.ResourceManager.GetUnityObject(new Location($"materials/{bsp.textureStringData[subMeshIndex]}.vmt", Location.Type.Source), out Material material, ctx.ImportMode, true))
+                        material = new Material(Shader.Find("Shader Graphs/Error"));
+                    materials.Add(material);
+
+                    // Transfer triangles
+                    if (indexFormat == IndexFormat.UInt16)
+                    {
+                        List<ushort> castList = indices as List<ushort>;
+                        foreach (uint index in subMeshIndices)
+                            castList.Add((ushort)index);
+                    }
+                    else
+                    {
+                        List<uint> castList = indices as List<uint>;
+                        castList.AddRange(subMeshIndices);
+                    }
+                }
+
+                mesh.SetIndexBufferParams(indices.Count, indexFormat);
+                if (indexFormat == IndexFormat.UInt16)
+                    mesh.SetIndexBufferData(indices as List<ushort>, 0, 0, indices.Count);
+                else
+                    mesh.SetIndexBufferData(indices as List<uint>, 0, 0, indices.Count);
+
+                mesh.SetSubMeshes(subMeshDescriptors);
+
+                mesh.RecalculateBounds();
+                mesh.RecalculateNormals();
+                mesh.RecalculateTangents();
+#if UNITY_EDITOR
+                UnityEditor.Unwrapping.GenerateSecondaryUVSet(mesh);
+#endif
+                mesh.UploadMeshData(true);
+
+                targetGameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+                targetGameObject.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
+                targetGameObject.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.TwoSided;
+
+#if UNITY_EDITOR
+                ctx.AssetImportContext.AddObjectToAsset($"mesh {key}", mesh);
+#endif
+                return true;
+            }
         }
     }
 }
