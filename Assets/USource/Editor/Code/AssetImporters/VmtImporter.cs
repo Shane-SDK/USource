@@ -42,9 +42,9 @@ namespace USource.AssetImporters
                 {
                     if (AssetImporter.GetAtPath(pair.Value.AssetPath) is VtfImporter vtfImporter)
                     {
-                        if (vtfImporter.normalMap == false)
+                        if (vtfImporter.options.color != TextureConverter.ColorMode.Normal)
                         {
-                            vtfImporter.normalMap = true;
+                            vtfImporter.options.color = TextureConverter.ColorMode.Normal;
                             EditorUtility.SetDirty(vtfImporter);
                         }
                     }
@@ -53,7 +53,7 @@ namespace USource.AssetImporters
                 {
                     if (flags.HasFlag(MaterialFlags.Skybox) && AssetImporter.GetAtPath(pair.Value.AssetPath) is VtfImporter vtfImporter)
                     {
-                        vtfImporter.wrapMode = TextureWrapMode.Clamp;
+                        vtfImporter.options.wrapMode = TextureWrapMode.Clamp;
                     }
                 }
             }

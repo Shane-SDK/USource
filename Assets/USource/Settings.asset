@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Settings
   m_EditorClassIdentifier: 
   sourceToUnityScale: 0.025
+  pathTo7Zip: J:\Unity Projects\Source Importer\Assets\USource\Code\Plugins\7z\7za.exe
   textureImporterPreset: {fileID: 2655988077585873504, guid: ccf8f824eb910b54980a567259ae0bb2,
     type: 2}
   gamePaths:
   - D:/SteamLibrary/steamapps/common/GarrysMod/garrysmod
   - D:/SteamLibrary/steamapps/common/Counter-Strike Source/cstrike
-  readBSPFiles: 1
+  readBSPFiles: 0

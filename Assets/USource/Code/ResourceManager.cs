@@ -3,6 +3,8 @@ using System.Linq;
 using System.Collections.Generic;
 using USource.Converters;
 using USource.SourceAsset;
+using USource.Providers;
+using System.Diagnostics;
 
 namespace USource
 {
@@ -12,9 +14,11 @@ namespace USource
         List<IResourceProvider> resourceProviders = new List<IResourceProvider>();
         public IReadOnlyDictionary<Location, UnityEngine.Object> ObjectCache => objectCache;
         Dictionary<Location, UnityEngine.Object> objectCache = new();
+        //Process zipProcess;
         public ResourceManager()
         {
             Refresh();
+
         }
         void CreateResourceProviders()
         {

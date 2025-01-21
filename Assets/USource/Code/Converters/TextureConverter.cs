@@ -5,22 +5,32 @@ namespace USource.Converters
 {
     public class TextureConverter : Converter
     {
-        public enum ImportOptions
+        public enum ColorMode
         {
-            Normal = 1 << 0,
-            Grayscale = 1 << 1,
+            RGB,
+            Normal,
+            Grayscale
+        }
+        [System.Serializable]
+        public struct ImportOptions
+        {
+            public int maxSize;
+            public ColorMode color;
+            public TextureWrapMode wrapMode;
+            public bool mipMaps;
         }
         UnityEngine.Texture2D texture;
         VTFFile vtf;
-        readonly ImportOptions importFlags;
-        public TextureWrapMode wrapMode = TextureWrapMode.Repeat;
-        public bool mipmaps = true;
-        public int maxSize = 1024;
-        public TextureConverter(string sourcePath, System.IO.Stream stream, ImportOptions importFlags, int maxSize = 1024) : base(sourcePath, stream)
+        public ImportOptions importOptions = new ImportOptions { 
+            color = ColorMode.RGB, 
+            maxSize = 1024, 
+            mipMaps = true, 
+            wrapMode = TextureWrapMode.Repeat 
+        };
+        public TextureConverter(string sourcePath, System.IO.Stream stream, ImportOptions importOptions) : base(sourcePath, stream)
         {
             vtf = new VTFFile(stream);
-            this.importFlags = importFlags;
-            this.maxSize = maxSize;
+            this.importOptions = importOptions;
         }
         public override UnityEngine.Object CreateAsset(ImportContext ctx)
         {
@@ -29,13 +39,13 @@ namespace USource.Converters
 
             // Check if original VTF format had an alpha channel
             bool hasAlpha = VTFImageFormatInfo.FromFormat(vtf.HighResImageFormat).AlphaBitsPerPixel > 0;
-            bool isNormal = this.importFlags.HasFlag(ImportOptions.Normal);
+            bool isNormal = this.importOptions.color == ColorMode.Normal;
             TextureFormat format = (hasAlpha || isNormal) ? TextureFormat.RGBA32 : TextureFormat.RGB24;
-            unityTexture = new Texture2D(vtf.Images[0, 0].width, vtf.Images[0, 0].height, format, mipmaps, isNormal, true);
-            unityTexture.wrapMode = wrapMode;
+            unityTexture = new Texture2D(vtf.Images[0, 0].width, vtf.Images[0, 0].height, format, importOptions.mipMaps, isNormal, true);
+            unityTexture.wrapMode = importOptions.wrapMode;
 
             // Flip pixels on y axis
-            for (int mip = 0; mip < (mipmaps ? vtf.Images.GetLength(1) : 1); mip++)
+            for (int mip = 0; mip < (importOptions.mipMaps ? vtf.Images.GetLength(1) : 1); mip++)
             {
                 RawTextureData data = vtf.Images[0, mip];
 

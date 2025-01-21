@@ -168,6 +168,7 @@ namespace USource.Converters
 #endif
                     if (instance == null) continue;
 
+                    instance.isStatic = true;
                     instance.transform.position = lump.Origin;
                     instance.transform.rotation = Quaternion.Euler(lump.Angles);
                     instance.transform.parent = worldGo.transform;
