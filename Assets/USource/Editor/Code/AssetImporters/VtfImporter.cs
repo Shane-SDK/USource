@@ -13,7 +13,6 @@ namespace USource.AssetImporters
     public class VtfImporter : ScriptedImporter
     {
         public Converters.TextureConverter.ImportOptions options = new TextureConverter.ImportOptions { 
-            color = TextureConverter.ColorMode.RGB, 
             maxSize = 1024, 
             mipMaps = true, 
             wrapMode = TextureWrapMode.Repeat

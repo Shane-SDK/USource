@@ -74,7 +74,7 @@ namespace USource.Converters
             {
                 dmodel_t model = bspFile.models[modelIndex];
 
-                if (importOptions.splitWorldGeometry)
+                if (importOptions.splitWorldGeometry && modelIndex == 0)
                 {
                     GameObject modelGO = null;
 
@@ -170,9 +170,10 @@ namespace USource.Converters
             {
                 BspEntity entity = bspFile.entities[entityIndex];
 
+                entity.TryGetValue("classname", out string className);
+                if (className == null) continue;
                 entity.TryGetTransformedVector3("origin", out Vector3 position);
                 entity.TryGetTransformedVector3("angles", out Vector3 angles);
-                entity.TryGetValue("classname", out string className);
                 if (entity.TryGetFloat("pitch", out float pitch))
                 {
                     angles.x = -pitch;
@@ -234,7 +235,7 @@ namespace USource.Converters
                     {
                         color = new Color(lightValues.x / 255, lightValues.y / 255, lightValues.z / 255);
                         range = lightValues.w / 20;
-                        intensity = lightValues.w / (type == LightType.Directional ? 200 : 50);
+                        intensity = lightValues.w / (type == LightType.Directional ? 200 : 25);
                     }
 
                     Light light = CreateEntityGO(true).AddComponent<Light>();

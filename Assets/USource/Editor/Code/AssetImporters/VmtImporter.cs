@@ -37,25 +37,6 @@ namespace USource.AssetImporters
             foreach (KeyValuePair<Converters.MaterialConverter.Map, Location> pair in materialConverter.Maps)
             {
                 maps.Add(pair.Key, pair.Value);
-
-                if (pair.Key == Converters.MaterialConverter.Map.Bump)
-                {
-                    if (AssetImporter.GetAtPath(pair.Value.AssetPath) is VtfImporter vtfImporter)
-                    {
-                        if (vtfImporter.options.color != TextureConverter.ColorMode.Normal)
-                        {
-                            vtfImporter.options.color = TextureConverter.ColorMode.Normal;
-                            EditorUtility.SetDirty(vtfImporter);
-                        }
-                    }
-                }
-                else if (pair.Key == Converters.MaterialConverter.Map.Diffuse)
-                {
-                    if (flags.HasFlag(MaterialFlags.Skybox) && AssetImporter.GetAtPath(pair.Value.AssetPath) is VtfImporter vtfImporter)
-                    {
-                        vtfImporter.options.wrapMode = TextureWrapMode.Clamp;
-                    }
-                }
             }
 
             UnityEngine.Material obj = materialConverter.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as UnityEngine.Material;

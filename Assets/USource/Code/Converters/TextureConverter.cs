@@ -15,14 +15,12 @@ namespace USource.Converters
         public struct ImportOptions
         {
             public int maxSize;
-            public ColorMode color;
             public TextureWrapMode wrapMode;
             public bool mipMaps;
         }
         UnityEngine.Texture2D texture;
         VTFFile vtf;
         public ImportOptions importOptions = new ImportOptions { 
-            color = ColorMode.RGB, 
             maxSize = 1024, 
             mipMaps = true, 
             wrapMode = TextureWrapMode.Repeat 
@@ -39,7 +37,7 @@ namespace USource.Converters
 
             // Check if original VTF format had an alpha channel
             bool hasAlpha = VTFImageFormatInfo.FromFormat(vtf.HighResImageFormat).AlphaBitsPerPixel > 0;
-            bool isNormal = this.importOptions.color == ColorMode.Normal;
+            bool isNormal = vtf.Header.Flags.HasFlag(VTFImageFlag.TEXTUREFLAGS_NORMAL);
             TextureFormat format = (hasAlpha || isNormal) ? TextureFormat.RGBA32 : TextureFormat.RGB24;
             unityTexture = new Texture2D(vtf.Images[0, 0].width, vtf.Images[0, 0].height, format, importOptions.mipMaps, isNormal, true);
             unityTexture.wrapMode = importOptions.wrapMode;

@@ -195,7 +195,8 @@ namespace USource.Formats.Source.VBSP
             reader.BaseStream.Seek(header.Lumps[35].FileOfs, SeekOrigin.Begin);
             gameLumps = new dgamelump_t[reader.ReadInt32()];
             reader.ReadArray(ref gameLumps, header.Lumps[35].FileOfs + 4);
-            
+
+            staticPropLumps = new StaticPropLump_t[0];
             for (int i = 0; i < gameLumps.Length; i++)
             {
                 if (gameLumps[i].Id == 1936749168)  // Static prop dictionary
@@ -214,6 +215,7 @@ namespace USource.Formats.Source.VBSP
                     reader.ReadArray(ref staticPropLeafEntries);
 
                     long nStaticProps = reader.ReadInt32();
+                    if (nStaticProps == 0) continue;
                     staticPropLumps = new StaticPropLump_t[nStaticProps];
                     long staticPropSize = (gameLumps[i].FileLen - (reader.BaseStream.Position - gameLumps[i].FileOfs)) / nStaticProps;
                     long staticPropLumpStart = reader.BaseStream.Position;
