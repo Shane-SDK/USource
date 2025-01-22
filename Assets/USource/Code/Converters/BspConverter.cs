@@ -1,7 +1,9 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -114,6 +116,30 @@ namespace USource.Converters
                         leafGO.transform.parent = modelGO.transform;
 
                         meshData.CreateMesh(leafGO, ctx);
+                    }
+
+                    for (int i = 0; i < bspFile.dispInfo.Length; i++)
+                    {
+                        MeshData meshData = new MeshData(bspFile, i);
+                        meshData.AddFace(ref bspFile.faces[bspFile.dispInfo[i].MapFace]);
+
+                        if (!meshData.HasGeometry) continue;
+
+                        if (modelGO == null)
+                        {
+                            modelGO = new GameObject($"[{modelIndex}] Model");
+                            modelGO.isStatic = true;
+                            modelGO.transform.parent = worldGeometryGO.transform;
+                            modelGO.transform.position = model.Origin;
+                            bModelMap[modelIndex] = modelGO;
+                        }
+
+
+                        GameObject dispGO = new GameObject($"disp {i}");
+                        dispGO.isStatic = true;
+                        dispGO.transform.parent = modelGO.transform;
+
+                        meshData.CreateMesh(dispGO, ctx);
                     }
                 }
                 else
@@ -299,8 +325,6 @@ namespace USource.Converters
             List<int> subMeshMap = new();
             public void AddFace(ref dface_t face)
             {
-                if (face.DispInfo != -1) return;
-
                 texinfo_t textureInfo = bsp.texInfo[face.TexInfo];
                 dtexdata_t textureData = bsp.texData[textureInfo.TexData];
                 string materialPath = bsp.textureStringData[textureData.NameStringTableID].ToLower();
@@ -315,29 +339,128 @@ namespace USource.Converters
                     subMeshes[textureData.NameStringTableID] = subIndices;
                 }
 
-                for (int index = 1, k = 0; index < face.NumEdges - 1; index++, k += 3)
+                if (face.DispInfo != -1)  // face is a displacement
                 {
-                    subIndices.Add((uint)vertices.Count);
-                    subIndices.Add((uint)(vertices.Count + index));
-                    subIndices.Add((uint)(vertices.Count + index + 1));
+                    ddispinfo_t dispInfo = bsp.dispInfo[face.DispInfo];
+
+                    // Triangles
+                    int vertexEdgeCount = (1 << dispInfo.Power) + 1;
+                    int edgeCount = 1 << dispInfo.Power;
+                    for (int i = 0; i < edgeCount * edgeCount; i++)
+                    {
+                        int x = i % edgeCount;
+                        int y = i / edgeCount;
+
+                        int vIndex = y * vertexEdgeCount + x;
+
+                        if (vIndex % 2 == 1)
+                        {
+                            subIndices.Add((uint)(vertices.Count + vIndex + vertexEdgeCount));
+                            subIndices.Add((uint)(vertices.Count + vIndex + 1));
+                            subIndices.Add((uint)(vertices.Count + vIndex));
+                            subIndices.Add((uint)(vertices.Count + vIndex + vertexEdgeCount));
+                            subIndices.Add((uint)(vertices.Count + vIndex + vertexEdgeCount + 1));
+                            subIndices.Add((uint)(vertices.Count + vIndex + 1));
+                        }
+                        else
+                        {
+                            subIndices.Add((uint)(vertices.Count + vIndex + vertexEdgeCount));
+                            subIndices.Add((uint)(vertices.Count + vIndex + vertexEdgeCount) + 1);
+                            subIndices.Add((uint)(vertices.Count + vIndex));
+                            subIndices.Add((uint)(vertices.Count + vIndex + vertexEdgeCount + 1));
+                            subIndices.Add((uint)(vertices.Count + vIndex + 1));
+                            subIndices.Add((uint)(vertices.Count + vIndex));
+                        }
+                    }
+
+                    // Vertices
+                    Vector3 basePosition = SourceTransformPointHammer(dispInfo.StartPosition);
+                    // determine the closest vertex on the face
+                    Vector3[] faceVertices = new Vector3[4];
+                    int minimumVertexIndex = -1;
+                    float minimumVertexDistance = float.MaxValue;
+                    for (int surfEdgeIndex = face.FirstEdge, i = 0; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++, i++)
+                    {
+                        int surfEdge = bsp.surfEdges[surfEdgeIndex];
+                        int edgeIndex = surfEdge > 0 ? 0 : 1;
+
+                        Vector3 vertex = EnsureFinite(bsp.vertices[bsp.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
+                        faceVertices[i] = vertex;
+                        float distance = Vector3.Distance(basePosition, vertex);
+                        if (distance < minimumVertexDistance)
+                        {
+                            minimumVertexDistance = distance;
+                            minimumVertexIndex = i;
+                        }
+                    }
+
+                    int GetFaceIndex(int index) => (index + minimumVertexIndex) % 4;
+
+                    Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, -textureInfo.TextureVecs[0].x);
+                    Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, -textureInfo.TextureVecs[1].x);
+
+                    Vector3 LeftEdge = faceVertices[GetFaceIndex(1)] - faceVertices[GetFaceIndex(0)];
+                    Vector3 RightEdge = faceVertices[GetFaceIndex(2)] - faceVertices[GetFaceIndex(3)];
+
+                    float SubdivideScale = 1.0f / edgeCount;
+
+                    Vector3 LeftEdgeStep = LeftEdge * SubdivideScale;
+                    Vector3 RightEdgeStep = RightEdge * SubdivideScale;
+
+                    for (int x = 0; x < vertexEdgeCount; x++)
+                    {
+                        Vector3 LeftEnd = LeftEdgeStep * x;
+                        LeftEnd += faceVertices[GetFaceIndex(0)];
+
+                        Vector3 RightEnd = RightEdgeStep * x;
+                        RightEnd += faceVertices[GetFaceIndex(3)];
+
+                        Vector3 LeftRightSeg = RightEnd - LeftEnd;
+                        Vector3 LeftRightStep = LeftRightSeg * SubdivideScale;
+
+                        for (int z = 0; z < vertexEdgeCount; z++)
+                        {
+                            Int32 DispVertIndex = dispInfo.DispVertStart + (x * vertexEdgeCount + z);
+                            dDispVert DispVertInfo = bsp.dispVerts[DispVertIndex];
+
+                            Vector3 FlatVertex = LeftEnd + (LeftRightStep * z);
+                            Vector3 DispVertex = Converter.SourceTransformDirection(DispVertInfo.Vec) * (DispVertInfo.Dist * USource.settings.sourceToUnityScale);
+                            DispVertex += FlatVertex;
+
+                            float s = (Vector3.Dot(FlatVertex, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
+                            float t = -(Vector3.Dot(FlatVertex, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
+
+                            vertices.Add(new WorldVertex { position = DispVertex, uv = new half2(new Vector2(s, t)) });
+                        }
+                    }
+                }
+                else  // flat face
+                {
+                    for (int index = 1, k = 0; index < face.NumEdges - 1; index++, k += 3)
+                    {
+                        subIndices.Add((uint)vertices.Count);
+                        subIndices.Add((uint)(vertices.Count + index));
+                        subIndices.Add((uint)(vertices.Count + index + 1));
+                    }
+
+                    Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, textureInfo.TextureVecs[0].x);
+                    Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, textureInfo.TextureVecs[1].x);
+
+                    for (int surfEdgeIndex = face.FirstEdge; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++)
+                    {
+                        int surfEdge = bsp.surfEdges[surfEdgeIndex];
+                        int edgeIndex = surfEdge > 0 ? 0 : 1;
+
+                        WorldVertex vertex = new();
+                        vertex.position = EnsureFinite(bsp.vertices[bsp.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
+                        float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
+                        float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
+                        vertex.uv = new half2(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
+
+                        vertices.Add(vertex);
+                    }
                 }
 
-                Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, textureInfo.TextureVecs[0].x);
-                Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, textureInfo.TextureVecs[1].x);
-
-                for (int surfEdgeIndex = face.FirstEdge; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++)
-                {
-                    int surfEdge = bsp.surfEdges[surfEdgeIndex];
-                    int edgeIndex = surfEdge > 0 ? 0 : 1;
-
-                    WorldVertex vertex = new();
-                    vertex.position = EnsureFinite(bsp.vertices[bsp.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
-                    float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
-                    float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
-                    vertex.uv = new half2(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
-
-                    vertices.Add(vertex);
-                }
             }
             public bool CreateMesh(GameObject targetGameObject, ImportContext ctx)
             {

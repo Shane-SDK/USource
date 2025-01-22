@@ -111,13 +111,13 @@ namespace USource.Converters
         {
             return worldSpaceScaleFactor * new Vector3(-c.x, c.z, -c.y);
         }
-        public static Vector3 SourceTransformDirection(Vector3 c)
-        {
-            return new Vector3(-c.x, c.z, -c.y);
-        }
         public static Vector3 SourceTransformPointHammer(Vector3 c)
         {
             return worldSpaceScaleFactor * new Vector3(-c.y, c.z, c.x);
+        }
+        public static Vector3 SourceTransformDirection(Vector3 c)
+        {
+            return new Vector3(-c.x, c.z, -c.y);
         }
         public static Vector3 SourceTransformAngles(Vector3 sourceAngles)
         {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Resources;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using USource.MathLib;
@@ -37,6 +38,8 @@ namespace USource.Formats.Source.VBSP
         public ushort[] leafFaces;
 
         public dgamelump_t[] gameLumps;
+
+        public dplane_t[] planes;
 
         public string[] staticPropDict;
         public ushort[] staticPropLeafEntries;
@@ -110,6 +113,9 @@ namespace USource.Formats.Source.VBSP
 
             texData = new dtexdata_t[header.Lumps[2].FileLen / 32];
             reader.ReadArray(ref texData, header.Lumps[2].FileOfs);
+
+            planes = new dplane_t[header.Lumps[1].FileLen / 20];
+            reader.ReadArray(ref planes, header.Lumps[1].FileOfs);
 
             textureStringData = new String[header.Lumps[44].FileLen / 4];
 
@@ -325,4 +331,11 @@ namespace USource.Formats.Source.VBSP
         public uint FlagsEx;           // Further bitflags.
         public float UniformScale;      // Prop scale
     };
+    [StructLayout(LayoutKind.Sequential)]
+    public struct dplane_t
+    {
+        public Vector3 normal;
+        public float distance;
+        public int type;
+    }
 }
