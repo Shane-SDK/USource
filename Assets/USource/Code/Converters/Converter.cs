@@ -8,7 +8,6 @@ namespace USource.Converters
     public abstract class Converter
     {
         public const float uvScaleFactor = 1.25f;
-        public const float worldSpaceScaleFactor = 0.025f;
         public UnityEngine.Object UnityObject
         {
             get
@@ -111,11 +110,11 @@ namespace USource.Converters
         /// <returns></returns>
         public static Vector3 SourceTransformPoint(Vector3 c)
         {
-            return worldSpaceScaleFactor * new Vector3(-c.x, c.z, -c.y);
+            return USource.settings.sourceToUnityScale * new Vector3(-c.x, c.z, -c.y);
         }
         public static Vector3 SourceTransformPointHammer(Vector3 c)
         {
-            return worldSpaceScaleFactor * new Vector3(-c.y, c.z, c.x);
+            return USource.settings.sourceToUnityScale * new Vector3(-c.y, c.z, c.x);
         }
         public static Vector3 SourceTransformDirection(Vector3 c)
         {

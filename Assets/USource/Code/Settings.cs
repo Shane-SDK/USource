@@ -9,7 +9,6 @@ namespace USource
     {
         public List<string> GamePaths => gamePaths;
         public float sourceToUnityScale = 0.025f;
-        public string pathTo7Zip;
 #if UNITY_EDITOR
         [HideInInspector]
         public UnityEditor.Presets.Preset textureImporterPreset;
