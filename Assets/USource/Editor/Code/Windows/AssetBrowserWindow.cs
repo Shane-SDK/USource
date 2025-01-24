@@ -14,7 +14,9 @@ namespace USource.Windows
             ".vmt",
             ".vtf",
             ".mdl",
+#if RealtimeCSG
             ".vmf",
+#endif
             ".bsp",
             //".wav",
             //".mp3"

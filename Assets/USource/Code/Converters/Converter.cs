@@ -92,9 +92,11 @@ namespace USource.Converters
                 case ".vtf":
                     converter = new Converters.TextureConverter(location.SourcePath, assetStream, default);
                     break;
+#if RealtimeCSG
                 case ".vmf":
                     converter = new VmfConverter(location.SourcePath, assetStream);
                     break;
+#endif
                 default:
                     converter = null;
                     break;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if RealtimeCSG
+using System.Collections.Generic;
 using UnityEngine;
 using VMFParser;
 using System.Linq;
@@ -400,3 +401,4 @@ namespace USource.Converters
         }
     }
 }
+#endif
