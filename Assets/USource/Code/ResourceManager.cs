@@ -84,6 +84,17 @@ namespace USource
             foreach (string gameDirectory in USource.settings.GamePaths)
             {
                 SearchGameInfo(gameDirectory);
+
+                // See if an addons folder exists (Gmod)
+                string addonPath = $"{gameDirectory}/Addons/";
+                if (Directory.Exists(addonPath))
+                {
+                    // Add directory providers for each file inside
+                    foreach (string addonFolder in Directory.EnumerateDirectories(addonPath))
+                    {
+                        resourceProviders.Add(new DirProvider(addonFolder));
+                    }
+                }
             }
 
             // Add every bsp file's pak lump

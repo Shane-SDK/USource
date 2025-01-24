@@ -283,6 +283,77 @@ namespace USource.Converters
                 }
             }
 
+            // Ambient lighting / Light probes
+#if UNITY_EDITOR
+            if (importOptions.probeMode != LightProbeMode.None)
+            {
+                LightProbeGroup probes = new GameObject("Light Probes").AddComponent<LightProbeGroup>();
+                probes.gameObject.isStatic = true;
+                probes.transform.parent = worldGo.transform;
+                ICollection<Vector3> probePositions = null;
+                if (importOptions.probeMode == LightProbeMode.UseMapProbes)
+                    probePositions = new Vector3[bspFile.ldrAmbientLighting.Length];
+                else
+                    probePositions = new List<Vector3>();
+                    
+                for (int i = 0; i < bspFile.ldrAmbientIndices.Length; i++)
+                {
+                    dleaf_t leaf = bspFile.leafs[i];
+                    if (importOptions.cullSkybox && leaf.cluster == skyLeafCluster) continue;
+
+                    dleafambientindex_t indices = bspFile.ldrAmbientIndices[i];
+                    if (indices.ambientSampleCount == 0) continue;  // Prevents generating probes in solid leaves
+
+                    Bounds leafBounds = new Bounds { min = leaf.TransformMin(), max = leaf.TransformMax() };
+                    Vector3 boundsSize = leafBounds.size;
+
+                    if (importOptions.probeMode == LightProbeMode.UseMapProbes)
+                    {
+                        // Use BSP's randomly placed light probe positions
+                        Vector3[] probeArray = probePositions as Vector3[];
+                        for (int lightIndex = indices.firstAmbientSample; lightIndex < indices.firstAmbientSample + indices.ambientSampleCount; lightIndex++)
+                        {
+                            dleafambientlighting_t lightInfo = bspFile.ldrAmbientLighting[lightIndex];
+                            Vector3 normalizedLocation = new Vector3(lightInfo.x, lightInfo.z, lightInfo.y) / 255.0f;
+                            Vector3 worldLocation = leafBounds.min + new Vector3(boundsSize.x * normalizedLocation.x, boundsSize.y * normalizedLocation.y, boundsSize.z * normalizedLocation.z);
+                            probeArray[lightIndex] = worldLocation;
+                        }
+                    }
+                    else  // Generate uniform light probe positions
+                    {
+                        List<Vector3> probeList = probePositions as List<Vector3>;
+                        Vector3 probeDistance = Vector3.one * 1.5f;
+                        int maxDimensionCount = 8;
+                        Vector3Int probeCounts = Vector3Int.zero;
+                        probeCounts.x = Mathf.Clamp(Mathf.FloorToInt(boundsSize.x / probeDistance.x), 1, maxDimensionCount);
+                        probeCounts.y = Mathf.Clamp(Mathf.FloorToInt(boundsSize.y / probeDistance.y), 1, maxDimensionCount);
+                        probeCounts.z = Mathf.Clamp(Mathf.FloorToInt(boundsSize.z / probeDistance.z), 1, maxDimensionCount);
+
+                        for (int c = 0; c < 3; c++)  // If max count exceeded, reset probe distance
+                        {
+                            if (probeCounts[c] == maxDimensionCount)
+                                probeDistance[c] = boundsSize[c] / probeCounts[c];
+                        }
+
+                        Vector3 padding = (boundsSize - new Vector3((probeCounts.x - 1) * probeDistance.x, (probeCounts.y - 1) * probeDistance.y, (probeCounts.z - 1) * probeDistance.z)) / 2;
+
+                        for (int packedPos = 0; packedPos < probeCounts.x * probeCounts.y * probeCounts.z; packedPos++)
+                        {
+                            int x = packedPos % probeCounts.x;
+                            int y = (packedPos / probeCounts.x) % probeCounts.y;
+                            int z = (packedPos / probeCounts.x) / probeCounts.y;
+
+                            Vector3 position = leafBounds.min + new Vector3(x * probeDistance.x, y * probeDistance.y, z * probeDistance.z) + padding;
+                            probeList.Add(position);
+                        }
+                    }
+
+                    // Set probes
+                    probes.probePositions = importOptions.probeMode == LightProbeMode.UseMapProbes ? probePositions as Vector3[] : (probePositions as List<Vector3>).ToArray();
+                }
+            }
+#endif
+
             return worldGo;
         }
         public static Vector3 EnsureFinite(Vector3 v)
@@ -299,6 +370,13 @@ namespace USource.Converters
             public bool cullSkybox;
             public bool splitWorldGeometry;
             public bool setupDependencies;
+            public LightProbeMode probeMode;
+        }
+        public enum LightProbeMode
+        {
+            None,
+            UseMapProbes,
+            GenerateUnityProbes
         }
         public struct WorldVertex
         {

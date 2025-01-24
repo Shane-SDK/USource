@@ -45,6 +45,9 @@ namespace USource.Formats.Source.VBSP
         public ushort[] staticPropLeafEntries;
         public StaticPropLump_t[] staticPropLumps;
 
+        public dleafambientindex_t[] ldrAmbientIndices;
+        public dleafambientlighting_t[] ldrAmbientLighting;
+
         // ======== OTHER ======= //
 
         public Face[] cFaces, cDisps;
@@ -116,6 +119,12 @@ namespace USource.Formats.Source.VBSP
 
             planes = new dplane_t[header.Lumps[1].FileLen / 20];
             reader.ReadArray(ref planes, header.Lumps[1].FileOfs);
+
+            ldrAmbientIndices = new dleafambientindex_t[header.Lumps[52].FileLen / 4];
+            reader.ReadArray(ref ldrAmbientIndices, header.Lumps[52].FileOfs);
+
+            ldrAmbientLighting = new dleafambientlighting_t[header.Lumps[56].FileLen / 28];
+            reader.ReadArray(ref ldrAmbientLighting, header.Lumps[56].FileOfs);
 
             textureStringData = new String[header.Lumps[44].FileLen / 4];
 
@@ -337,5 +346,45 @@ namespace USource.Formats.Source.VBSP
         public Vector3 normal;
         public float distance;
         public int type;
+    }
+    /// <summary>
+    /// 28 bytes
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct dleafambientlighting_t
+    {
+        public CompressedLightCube cube;
+        public byte x;
+        public byte y;
+        public byte z;
+        public byte pad;
+    }
+    /// <summary>
+    /// 24 bytes
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CompressedLightCube
+    {
+        public ColorRGBExp32 color0, color1, color2, color3, color4, color5;
+    }
+    /// <summary>
+    /// 4 bytes
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ColorRGBExp32
+    {
+        public byte r;
+        public byte g;
+        public byte b;
+        sbyte exponent;
+    }
+    /// <summary>
+    /// 4 bytes
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct dleafambientindex_t
+    {
+        public ushort ambientSampleCount;
+        public ushort firstAmbientSample;
     }
 }
