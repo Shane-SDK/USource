@@ -392,8 +392,8 @@ namespace USource
             }
             catch(Exception ex)
             {
-                UnityEngine.Debug.Log(value);
-                UnityEngine.Debug.LogError("EOF: " + ex);
+                //UnityEngine.Debug.Log(value);
+                //UnityEngine.Debug.LogError("EOF: " + ex);
                 return new KeyValues(result.First(), flags);
             }
 

@@ -48,6 +48,9 @@ namespace USource.Formats.Source.VBSP
         public dleafambientindex_t[] ldrAmbientIndices;
         public dleafambientlighting_t[] ldrAmbientLighting;
 
+        public List<dphysmodel_t> physModelHeaders;
+        public Dictionary<int, PhysModel> physModels;
+
         // ======== OTHER ======= //
 
         public Face[] cFaces, cDisps;
@@ -276,6 +279,42 @@ namespace USource.Formats.Source.VBSP
                     }
                 }
             }
+
+            //reader.BaseStream.Position = header.Lumps[29].FileOfs;
+            //physModels = new();
+            //physModelHeaders = new();
+            //int iteration = 0;
+            //while (true)
+            //{
+            //    if (iteration > 10) break;
+            //    iteration++;
+            //    dphysmodel_t header = default;
+            //    header.modelIndex = -1;
+            //    reader.ReadType(ref header);
+            //    if (header.modelIndex == -1) break;
+
+            //    PhysModel model = new PhysModel();
+            //    physModels[header.modelIndex] = model;
+            //    physModelHeaders.Add(header);
+            //    for (int k = 0; k < header.solidCount; k++)
+            //    {
+            //        MDL.PhysSolid[] solids = Source.MDL.PhysSolid.ReadCollisionData(reader, header.solidCount, true);
+            //        model.physSolids = solids;
+
+            //        // Apply 90 deg rotation along y axis
+            //        for (int i = 0; i < solids.Length; i++)
+            //        {
+            //            MDL.PhysSolid solid = solids[i];
+            //            for (int v = 0; v < solid.vertices.Length; v++)
+            //            {
+            //                solid.vertices[v] = Quaternion.AngleAxis(90, Vector3.up) * solid.vertices[v];
+            //            }
+            //        }
+            //    }
+
+            //    byte[] keyData = reader.ReadBytes(header.keydataSize);
+            //}
+
         }
 
     }
@@ -386,5 +425,11 @@ namespace USource.Formats.Source.VBSP
     {
         public ushort ambientSampleCount;
         public ushort firstAmbientSample;
+    }
+    public class PhysModel
+    {
+        public int modelIndex;
+        public Source.MDL.PhysSolid[] physSolids;
+        public KeyValues keyValues;
     }
 }

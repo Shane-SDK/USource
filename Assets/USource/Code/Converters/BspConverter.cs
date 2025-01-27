@@ -41,7 +41,7 @@ namespace USource.Converters
             BspEntity skyCamera = bspFile.entities.FirstOrDefault(e => e.values.TryGetValue("classname", out string className) && className == "sky_camera");
             HashSet<int> skyFaces = new();
             HashSet<ushort> skyLeafs = new();
-            short skyLeafCluster = 0;
+            short skyLeafCluster = -1;
 
             Dictionary<int, GameObject> bModelMap = new();
 
@@ -120,6 +120,8 @@ namespace USource.Converters
 
                     for (int i = 0; i < bspFile.dispInfo.Length; i++)
                     {
+                        if (skyFaces.Contains((int)bspFile.dispInfo[i].MapFace)) continue;
+
                         MeshData meshData = new MeshData(bspFile, i);
                         meshData.AddFace(ref bspFile.faces[bspFile.dispInfo[i].MapFace]);
 
@@ -163,6 +165,22 @@ namespace USource.Converters
                     meshData.CreateMesh(modelGO, ctx);
                 }
             }
+
+            // World Collision
+    //        if (importOptions.importWorldColliders)
+    //        {
+    //            foreach (KeyValuePair<int, PhysModel> pair in bspFile.physModels)
+    //            {
+    //                GameObject go = bModelMap[pair.Key];
+    //                ModelConverter.CreateColliders(go, pair.Value.physSolids);
+    //#if UNITY_EDITOR
+    //                foreach (MeshCollider mesh in go.GetComponentsInChildren<MeshCollider>())
+    //                {
+    //                    ctx.AssetImportContext.AddObjectToAsset("world collider", mesh.sharedMesh);
+    //                }
+    //#endif
+    //            }
+    //        }
 
             // Static props
             GameObject staticPropsGO = new GameObject("Static Props");
@@ -370,6 +388,7 @@ namespace USource.Converters
             public bool cullSkybox;
             public bool splitWorldGeometry;
             public bool setupDependencies;
+            //public bool importWorldColliders;
             public LightProbeMode probeMode;
         }
         public enum LightProbeMode

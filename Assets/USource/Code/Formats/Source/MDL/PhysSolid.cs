@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using static USource.Formats.Source.MDL.MDLFile;
 
 namespace USource.Formats.Source.MDL
 {
@@ -87,8 +88,108 @@ namespace USource.Formats.Source.MDL
 
             return true;
         }
-    }
+        public static PhysSolid[] ReadCollisionData(UReader reader, int solidCount, bool isStatic)
+        {
+            const float physicsScalingFactor = 1.016f;
+            PhysSolid[] physSolids = new PhysSolid[solidCount];
+            int partCount = 0;
 
+            for (int i = 0; i < solidCount; i++)
+            {
+                // Each solid can be made up of separate bodies of vertices
+                List<List<int>> indexSet = new List<List<int>>();
+                compactsurfaceheader_t compactHeader = default;
+                long nextHeader = reader.BaseStream.Position;
+                reader.ReadType<compactsurfaceheader_t>(ref compactHeader);
+                nextHeader += compactHeader.size + sizeof(int);
+
+                legacysurfaceheader_t legacyHeader = default;
+                reader.ReadType<legacysurfaceheader_t>(ref legacyHeader);
+
+                long verticesPosition = 0;
+                int largestVertexIndex = -1;
+
+                // The number of separate bodies in a solid seems to be unknown so stop once the beginning of the vertex offset is reached
+                while ((reader.BaseStream.Position < verticesPosition || largestVertexIndex == -1) && reader.BaseStream.Position < reader.BaseStream.Length)  // Read triangles until the vertex offset is reached
+                {
+                    partCount++;
+                    List<int> indices = new List<int>();
+                    indexSet.Add(indices);
+                    trianglefaceheader_t triangleFaceHeader = default;
+                    long headerPosition = reader.BaseStream.Position;
+                    reader.ReadType<trianglefaceheader_t>(ref triangleFaceHeader);
+
+                    verticesPosition = headerPosition + triangleFaceHeader.m_offsetTovertices;
+
+                    //BitArray bitSet = new BitArray(triangleFaceHeader.dummy[1]);
+                    //bool skipData = bitSet[0];
+
+                    //if (skipData)
+                    //    break;
+
+                    triangleface_t[] triangleFaces = new triangleface_t[triangleFaceHeader.m_countFaces];
+                    reader.ReadArray<triangleface_t>(ref triangleFaces);
+
+                    for (int t = 0; t < triangleFaces.Length; t++)
+                    {
+                        triangleface_t face = triangleFaces[t];
+                        indices.Add(face.v3);
+                        indices.Add(face.v2);
+                        indices.Add(face.v1);
+
+                        // Get the largest vertex index
+                        int max = Mathf.Max(face.v1, face.v2, face.v3);
+                        if (max > largestVertexIndex)
+                            largestVertexIndex = max;
+                    }
+                }
+
+                vertex[] vertices = new vertex[largestVertexIndex + 1];
+                reader.ReadArray<vertex>(ref vertices, verticesPosition);
+
+                PhysSolid solid = default;
+                solid.index = -1;
+                solid.parts = new PhysPart[indexSet.Count];
+                for (int p = 0; p < indexSet.Count; p++)
+                    solid.parts[p].triangles = indexSet[p].ToArray();
+
+                solid.vertices = new Vector3[vertices.Length];
+
+                for (int t = 0; t < vertices.Length; t++)
+                {
+                    solid.vertices[t] = Quaternion.AngleAxis(180, Vector3.up) * Quaternion.AngleAxis(isStatic ? 90 : 0, Vector3.right) * new Vector3(
+                        vertices[t].position[0],
+                        vertices[t].position[2],
+                        vertices[t].position[1]) / physicsScalingFactor;
+                }
+
+                physSolids[i] = solid;
+                reader.BaseStream.Position = nextHeader;
+            }
+
+            //// Read text at the end of file
+            //byte[] bytes = reader.ReadBytes((int)(reader.BaseStream.Length - reader.BaseStream.Position));
+            //string text = System.Text.Encoding.ASCII.GetString(bytes);
+            //KeyValues keyValues = KeyValues.Parse(text);
+            //foreach (KeyValues.Entry entry in keyValues["solid"])
+            //{
+            //    if (int.TryParse(entry["index"], out int index))
+            //    {
+            //        PhysSolid solid = physSolids[index];
+            //        solid.index = index;
+            //        if (float.TryParse(entry["mass"], out float mass))
+            //        {
+            //            solid.mass = mass;
+            //        }
+            //        solid.boneName = entry["name"];
+
+            //        physSolids[index] = solid;
+            //    }
+            //}
+
+            return physSolids;
+        }
+    }
     public struct PhysPart
     {
         public int[] triangles;

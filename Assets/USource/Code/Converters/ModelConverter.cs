@@ -9,6 +9,7 @@ using USource.MathLib;
 using System.IO;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
+using USource.Formats.Source.VBSP;
 
 namespace USource.Converters
 {
@@ -514,6 +515,102 @@ namespace USource.Converters
             unityObject = model;
 
             return model;
+        }
+        public static void CreateColliders(GameObject go, PhysSolid[] physSolids)
+        {
+            for (int s = 0; s < physSolids.Length; s++)
+            {
+                PhysSolid solid = physSolids[s];
+                Transform transform = go.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == solid.boneName?.ToLower());
+                if (transform != null)
+                    go = transform.gameObject;
+                for (int p = 0; p < solid.parts.Length; p++)
+                {
+                    if (solid.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
+                    {
+                        BoxCollider col = go.AddComponent<BoxCollider>();
+                        col.center = boxCenter;
+                        col.size = boxSize;
+                    }
+                    else  // Create mesh
+                    {
+                        //continue;
+                        PhysPart part = solid.parts[p];
+                        Mesh mesh = new Mesh();
+
+                        Dictionary<Vector3, int> indexMap = new();
+                        List<PhysVertex> vertices = new();
+                        int[] indices = new int[part.triangles.Length];
+                        Vector3 boundsMin = Vector3.one * float.MaxValue;
+                        Vector3 boundsMax = Vector3.one * float.MinValue;
+
+                        for (int i = 0; i < indices.Length; i++)
+                        {
+                            // get vertex this index corresponds to
+                            Vector3 vertPosition = solid.vertices[part.triangles[i]];
+                            if (indexMap.TryGetValue(vertPosition, out int newIndex))  // re using a vertex, use existing indices
+                            {
+                                indices[i] = newIndex;
+                            }
+                            else  // New index (vertex) is being used, add to vertices
+                            {
+                                indexMap[vertPosition] = vertices.Count;
+                                indices[i] = vertices.Count;
+                                vertices.Add(new PhysVertex { position = vertPosition });
+                                boundsMin = Vector3.Min(boundsMin, vertPosition);
+                                boundsMax = Vector3.Max(boundsMax, vertPosition);
+                            }
+                        }
+
+                        // Calculate Normals
+                        // Get normal for each triangle and add to each vertex' normal
+                        // Normalize at the end
+                        for (int i = 0; i < indices.Length / 3; i++)
+                        {
+                            int index0 = indices[i * 3];
+                            int index1 = indices[i * 3 + 1];
+                            int index2 = indices[i * 3 + 2];
+                            Vector3 normal = Vector3.Cross(vertices[index1].position - vertices[index0].position, vertices[index2].position - vertices[index0].position).normalized;
+                            half4 halfNormal = new half4((half)normal.x, (half)normal.y, (half)normal.z, default);
+
+                            void AddNormal(int o)
+                            {
+                                PhysVertex vertex = vertices[o];
+                                vertex.normal += normal;
+                                vertices[o] = vertex;
+                            }
+
+                            AddNormal(index0);
+                            AddNormal(index1);
+                            AddNormal(index2);
+                        }
+                        // Normalize normals
+                        for (int i = 0; i < vertices.Count; i++)
+                        {
+                            PhysVertex vertex = vertices[i];
+                            vertex.normal = vertex.normal.normalized;
+                            vertices[i] = vertex;
+                        }
+                        mesh.name = $"{solid.boneName}-{p}.phy";
+
+                        MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontNotifyMeshUsers;
+
+                        mesh.SetVertexBufferParams(vertices.Count, physVertexDescriptor);
+                        mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0, flags);
+                        mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt32);
+                        mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
+                        mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length, bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin) }, flags);
+                        mesh.bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin);
+
+                        //mesh.Optimize();
+                        mesh.UploadMeshData(true);
+
+                        MeshCollider c = go.AddComponent<MeshCollider>();
+                        c.sharedMesh = mesh;
+                        c.convex = true;
+                    }
+                }
+            }
         }
     }
     public struct Vertex

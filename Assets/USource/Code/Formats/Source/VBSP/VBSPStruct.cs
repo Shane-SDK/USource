@@ -176,10 +176,10 @@ namespace USource.Formats.Source.VBSP
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct dphysmodel_t
         {
-            Int32 modelIndex;  // Perhaps the index of the model to which this physics model applies?
-            Int32 dataSize;    // Total size of the collision data sections
-            Int32 keydataSize; // Size of the text section
-            Int32 solidCount;  // Number of collision data sections
+            public Int32 modelIndex;  // Perhaps the index of the model to which this physics model applies?
+            public Int32 dataSize;    // Total size of the collision data sections
+            public Int32 keydataSize; // Size of the text section
+            public Int32 solidCount;  // Number of collision data sections
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
