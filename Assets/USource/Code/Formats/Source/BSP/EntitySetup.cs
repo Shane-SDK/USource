@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using USource.Formats.Source.VTF;
 
-namespace USource.Formats.Source.VBSP
+namespace USource.Formats.Source.BSP
 {
     public static class EntitySetup
     {

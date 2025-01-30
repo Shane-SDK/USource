@@ -8,36 +8,7 @@ namespace USource.Converters
     public abstract class Converter
     {
         public const float uvScaleFactor = 1.25f;
-        public UnityEngine.Object UnityObject
-        {
-            get
-            {
-                return unityObject;
-            }
-        }
         public readonly string sourcePath;
-        public string AssetDatabasePath
-        {
-            get
-            {
-                return $"Assets/USource/Assets/{USource.StripExtension(sourcePath)}.{USource.GetUnityAssetExtension(UnityObjectType)}";
-            }
-        }
-        public string AbsolutePath
-        {
-            get
-            {
-                return $"{Application.dataPath}/{AssetDatabasePath.Remove(0, 7)}";
-            }
-        }
-        public Type UnityObjectType
-        {
-            get
-            {
-                return USource.GetTypeFromExtension(sourcePath.Split('.')[^1]);
-            }
-        }
-        protected UnityEngine.Object unityObject;
         public Converter(string sourcePath, System.IO.Stream stream)
         {
             this.sourcePath = sourcePath;
@@ -139,8 +110,6 @@ namespace USource.Converters
                 ).eulerAngles;
         }
         public static Vector3 AxisConvertSource(Vector3 sourceAxis) => new Vector3(sourceAxis.x, sourceAxis.z, sourceAxis.y);
-
-        
     }
     public enum ImportMode
     {

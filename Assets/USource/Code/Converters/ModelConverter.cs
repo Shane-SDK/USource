@@ -9,7 +9,7 @@ using USource.MathLib;
 using System.IO;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
-using USource.Formats.Source.VBSP;
+using USource.Formats.Source.BSP;
 
 namespace USource.Converters
 {
@@ -511,9 +511,6 @@ namespace USource.Converters
                     go.AddComponent<Rigidbody>().mass = solid.mass;
                 }
             }
-
-            unityObject = model;
-
             return model;
         }
         public static void CreateColliders(GameObject go, PhysSolid[] physSolids)

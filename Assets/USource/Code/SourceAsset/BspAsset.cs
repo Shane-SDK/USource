@@ -5,8 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using USource.Converters;
-using USource.Formats.Source.VBSP;
-using static USource.Formats.Source.VBSP.VBSPStruct;
+using USource.Formats.Source.BSP;
 
 namespace USource.SourceAsset
 {
@@ -27,16 +26,16 @@ namespace USource.SourceAsset
 
             HashSet<Location> importedLocations = new();
             UReader reader = new UReader(stream);
-            dheader_t header = default;
+            Header header = default;
             reader.ReadType(ref header);
-            int textureCount = header.Lumps[44].FileLen / 4;
+            int textureCount = header.lumps[44].fileLength / 4;
             int[] indexArray = new int[textureCount];
-            reader.ReadArray(ref indexArray, header.Lumps[44].FileOfs);
+            reader.ReadArray(ref indexArray, header.lumps[44].fileOffset);
 
             // iterate over each index in the texture-index table
             for (int i = 0; i < textureCount; i++)
             {
-                string materialPath = $"materials/{reader.ReadNullTerminatedString(header.Lumps[43].FileOfs + indexArray[i]).ToLower()}.vmt";
+                string materialPath = $"materials/{reader.ReadNullTerminatedString(header.lumps[43].fileOffset + indexArray[i]).ToLower()}.vmt";
                 // check if material uses %include
                 Location materialLocation = new Location(materialPath, Location.Type.Source, Location.ResourceProvider);
                 if (ISourceAsset.TryResolvePatchMaterial(materialLocation, out Location patchedMaterial))
@@ -45,15 +44,15 @@ namespace USource.SourceAsset
             }
 
             // Add static props
-            reader.BaseStream.Seek(header.Lumps[35].FileOfs, SeekOrigin.Begin);
-            dgamelump_t[] gameLumps = new dgamelump_t[reader.ReadInt32()];
-            reader.ReadArray(ref gameLumps, header.Lumps[35].FileOfs + 4);
+            reader.BaseStream.Seek(header.lumps[35].fileOffset, SeekOrigin.Begin);
+            GameLumpHeader[] gameLumps = new GameLumpHeader[reader.ReadInt32()];
+            reader.ReadArray(ref gameLumps, header.lumps[35].fileOffset + 4);
 
             for (int i = 0; i < gameLumps.Length; i++)
             {
-                if (gameLumps[i].Id == 1936749168)  // Static prop dictionary
+                if (gameLumps[i].id == 1936749168)  // Static prop dictionary
                 {
-                    reader.BaseStream.Seek(gameLumps[i].FileOfs, SeekOrigin.Begin);
+                    reader.BaseStream.Seek(gameLumps[i].fileOffset, SeekOrigin.Begin);
                     int propCount = reader.ReadInt32();
                     for (Int32 j = 0; j < propCount; j++)
                     {
@@ -68,9 +67,9 @@ namespace USource.SourceAsset
             }
 
             // Entities
-            reader.BaseStream.Seek(header.Lumps[0].FileOfs, SeekOrigin.Begin);
+            reader.BaseStream.Seek(header.lumps[0].fileOffset, SeekOrigin.Begin);
             MatchCollection Matches = Regex.Matches(
-                new(reader.ReadChars(header.Lumps[0].FileLen)),
+                new(reader.ReadChars(header.lumps[0].fileLength)),
                 @"{[^}]*}", RegexOptions.IgnoreCase);
 
  

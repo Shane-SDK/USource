@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System;
 using System.Text;
+using USource.Formats;
 
 namespace USource
 {
@@ -48,7 +49,6 @@ namespace USource
                 Handle.Free();
             }
         }
-
         public void ReadArray<T>(ref T[] Array, long? Offset = null)
         {
             if (Offset.HasValue)
@@ -57,7 +57,22 @@ namespace USource
             for (Int32 i = 0; i < Array.Length; i++)
                 ReadType(ref Array[i]);
         }
-
+        public void ReadArray<T>(ref T[] array, int version = 0) where T : struct, ISourceObject
+        {
+            for (int i = 0; i < array.Length; i++)
+            {
+                array[i].ReadToObject(this, version);
+            }
+        }
+        public void ReadSourceObjectArray<T>(ref T[] array, long position, int version = 0) where T : struct, ISourceObject
+        {
+            InputStream.Position = position;
+            ReadArray(ref array, version);
+        }
+        public void ReadSourceObjectArray<T>(ref T[] array, int version = 0) where T : struct, ISourceObject
+        {
+            ReadArray(ref array, version);
+        }
         [ThreadStatic]
         private static StringBuilder _sBuilder;
         public String ReadNullTerminatedString(long? Offset = null)
@@ -79,7 +94,6 @@ namespace USource
                 _sBuilder.Append(c);
             }
         }
-
         public Vector3 ReadVector3D(bool SwapZY = true)
         {
             Vector3 Vector3D = new Vector3(ReadSingle(), ReadSingle(), ReadSingle());
@@ -97,12 +111,15 @@ namespace USource
 
             return Vector3D;
         }
-
         public Vector3 ReadVector2D()
         {
             Vector2 Vector2D = new Vector2(ReadSingle(), ReadSingle());
 
             return Vector2D;
+        }
+        public Vector4 ReadVector4()
+        {
+            return new Vector4(ReadSingle(), ReadSingle(), ReadSingle(), ReadSingle());
         }
     }
 }

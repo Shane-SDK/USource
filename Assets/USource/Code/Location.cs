@@ -7,9 +7,7 @@ namespace USource
         public enum Type
         {
             Source,
-            AssetDatabase,
-            Resource,
-            Absolute
+            AssetDatabase
         }
         public readonly string SourcePath => this.sourcePath;
         public string AssetPath
@@ -27,7 +25,6 @@ namespace USource
             }
         }
         public readonly IResourceProvider ResourceProvider => resourceProvider;
-        public bool DataExists => resourceProvider != null && resourceProvider.ContainsFile(sourcePath);
         readonly string sourcePath;
         readonly IResourceProvider resourceProvider;
         public Location(string path, Type type, IResourceProvider provider = null)

@@ -166,9 +166,6 @@ namespace USource.Converters
             {
                 material.SetFloat("_envmapMaskBaseAlpha", 1);
             }
-
-            unityObject = material;
-
             return material;
         }
         public static UnityEngine.Shader GetShader(string sourceName)

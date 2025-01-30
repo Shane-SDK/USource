@@ -1,144 +1,106 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Resources;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using USource.MathLib;
 using USource.SourceAsset;
 
-namespace USource.Formats.Source.VBSP
+namespace USource.Formats.Source.BSP
 {
     // https://developer.valvesoftware.com/wiki/Source_BSP_File_Format#Lump_structure
-    public class VBSPFile : VBSPStruct
+    public class BSP
     {
+        public int Version => header.version;
         // ======== BSP ======= //
         public UReader reader;
-        public dheader_t header;
-
-        public dface_t[] faces;
-        public dmodel_t[] models;
-
-        public doverlay_t[] overlays;
-
-        public ddispinfo_t[] dispInfo;
-        public dDispVert[] dispVerts;
-
-        public texinfo_t[] texInfo;
-        public dtexdata_t[] texData;
-        public String[] textureStringData;
-
-        public dedge_t[] edges;
+        public Header header;
+        public Face[] faces;
+        public BrushModel[] models;
+        public Overlay[] overlays;
+        public DisplacementInfo[] dispInfo;
+        public DisplacementVertex[] dispVerts;
+        public TextureInfo[] texInfo;
+        public TextureData[] texData;
+        public string[] textureStringData;
+        public Edge[] edges;
         public Vector3[] vertices;
-        public Int32[] surfEdges;
-
-        public dnode_t[] nodes;
-        public dleaf_t[] leafs;
+        public int[] surfEdges;
+        public Node[] nodes;
+        public Leaf[] leafs;
         public ushort[] leafFaces;
-
-        public dgamelump_t[] gameLumps;
-
-        public dplane_t[] planes;
-
+        public GameLumpHeader[] gameLumps;
+        public Plane[] planes;
         public string[] staticPropDict;
         public ushort[] staticPropLeafEntries;
         public StaticPropLump_t[] staticPropLumps;
-
-        public dleafambientindex_t[] ldrAmbientIndices;
-        public dleafambientlighting_t[] ldrAmbientLighting;
-
-        public List<dphysmodel_t> physModelHeaders;
+        public LeafAmbientIndex[] ldrAmbientIndices;
+        public LeafAmbientLighting[] ldrAmbientLighting;
+        public List<PhysicsBrushModel> physModelHeaders;
         public Dictionary<int, PhysModel> physModels;
-
-        // ======== OTHER ======= //
-
-        public Face[] cFaces, cDisps;
-        public string name;
-
         public List<BspEntity> entities;
-
         public PAKProvider pakProvider = null;
-        //TODO: Check if LUMPs has a LZMA compression (ex: updated tf maps)
-        public VBSPFile(Stream stream, string BSPName = default)
+        public BSP(Stream stream, string BSPName = default)
         {
-            //bspPath = uLoader.RootPath + "/" + uLoader.ModFolders[0] + "/maps/" + BSPName + ".bsp";
-            //if (!File.Exists(bspPath))
-            //    throw new FileNotFoundException(String.Format("Map file ({0}) wasn't found in the ({1}) mod-folder. Check weather a path is valid.", BSPName, uLoader.ModFolders[0]));
-            name = BSPName;
-            //bspPath = BSPName;
             reader = new UReader(stream);
-            reader.ReadType(ref header);
+            header.ReadToObject(reader, Version);
 
-            if (header.Ident != 0x50534256)
+            if (header.identity != 0x50534256)
                 throw new FileLoadException(String.Format("{0}: File signature does not match 'VBSP'", BSPName));
 
-            if (header.Version < 19 || header.Version > 21)
-                throw new FileLoadException(String.Format("{0}: BSP version ({1}) isn't supported", BSPName, header.Version));
+            if (header.version < 19 || header.version > 21)
+                throw new FileLoadException(String.Format("{0}: BSP version ({1}) isn't supported", BSPName, header.version));
 
-            if (header.Lumps[0].FileOfs == 0)
+            if (header.lumps[58].fileLength / 56 <= 0)
             {
-                Debug.Log("Found Left 4 Dead 2 header");
-                for (Int32 i = 0; i < header.Lumps.Length; i++)
-                {
-                    header.Lumps[i].FileOfs = header.Lumps[i].FileLen;
-                    header.Lumps[i].FileLen = header.Lumps[i].Version;
-                }
-            }
-
-            //BSP_WorldSpawn = new GameObject(BSPName);
-
-            if (header.Lumps[58].FileLen / 56 <= 0)
-            {
-                faces = new dface_t[header.Lumps[7].FileLen / 56];
-                reader.ReadArray(ref faces, header.Lumps[7].FileOfs);
+                faces = new Face[header.lumps[7].fileLength / 56];
+                reader.ReadSourceObjectArray(ref faces, header.lumps[7].fileOffset, Version);
             }
             else
             {
-                faces = new dface_t[header.Lumps[58].FileLen / 56];
-                reader.ReadArray(ref faces, header.Lumps[58].FileOfs);
+                faces = new Face[header.lumps[58].fileLength / 56];
+                reader.ReadSourceObjectArray(ref faces, header.lumps[58].fileOffset, Version);
             }
 
-            models = new dmodel_t[header.Lumps[14].FileLen / 48];
-            reader.ReadArray(ref models, header.Lumps[14].FileOfs);
+            models = new BrushModel[header.lumps[14].fileLength / 48];
+            reader.ReadSourceObjectArray(ref models, header.lumps[14].fileOffset, Version);
 
-            overlays = new doverlay_t[header.Lumps[45].FileLen / 352];
-            reader.ReadArray(ref overlays, header.Lumps[45].FileOfs);
+            overlays = new Overlay[header.lumps[45].fileLength / 352];
+            reader.ReadSourceObjectArray(ref overlays, header.lumps[45].fileOffset, Version);
 
-            dispInfo = new ddispinfo_t[header.Lumps[26].FileLen / 176];
-            reader.ReadArray(ref dispInfo, header.Lumps[26].FileOfs);
+            dispInfo = new DisplacementInfo[header.lumps[26].fileLength / 176];
+            reader.ReadSourceObjectArray(ref dispInfo, header.lumps[26].fileOffset, Version);
 
-            dispVerts = new dDispVert[header.Lumps[33].FileLen / 20];
-            reader.ReadArray(ref dispVerts, header.Lumps[33].FileOfs);
+            dispVerts = new DisplacementVertex[header.lumps[33].fileLength / 20];
+            reader.ReadSourceObjectArray(ref dispVerts, header.lumps[33].fileOffset, Version);
 
-            texInfo = new texinfo_t[header.Lumps[18].FileLen / 12];
-            reader.ReadArray(ref texInfo, header.Lumps[18].FileOfs);
+            texInfo = new TextureInfo[header.lumps[18].fileLength / 12];
+            reader.ReadSourceObjectArray(ref texInfo, header.lumps[18].fileOffset, Version);
 
-            texInfo = new texinfo_t[header.Lumps[6].FileLen / 72];
-            reader.ReadArray(ref texInfo, header.Lumps[6].FileOfs);
+            texInfo = new TextureInfo[header.lumps[6].fileLength / 72];
+            reader.ReadSourceObjectArray(ref texInfo, header.lumps[6].fileOffset, Version);
 
-            texData = new dtexdata_t[header.Lumps[2].FileLen / 32];
-            reader.ReadArray(ref texData, header.Lumps[2].FileOfs);
+            texData = new TextureData[header.lumps[2].fileLength / 32];
+            reader.ReadSourceObjectArray(ref texData, header.lumps[2].fileOffset, Version);
 
-            planes = new dplane_t[header.Lumps[1].FileLen / 20];
-            reader.ReadArray(ref planes, header.Lumps[1].FileOfs);
+            planes = new Plane[header.lumps[1].fileLength / 20];
+            reader.ReadSourceObjectArray(ref planes, header.lumps[1].fileOffset, Version);
 
-            ldrAmbientIndices = new dleafambientindex_t[header.Lumps[52].FileLen / 4];
-            reader.ReadArray(ref ldrAmbientIndices, header.Lumps[52].FileOfs);
+            ldrAmbientIndices = new LeafAmbientIndex[header.lumps[52].fileLength / 4];
+            reader.ReadSourceObjectArray(ref ldrAmbientIndices, header.lumps[52].fileOffset, Version);
 
-            ldrAmbientLighting = new dleafambientlighting_t[header.Lumps[56].FileLen / 28];
-            reader.ReadArray(ref ldrAmbientLighting, header.Lumps[56].FileOfs);
+            ldrAmbientLighting = new LeafAmbientLighting[header.lumps[56].fileLength / 28];
+            reader.ReadSourceObjectArray(ref ldrAmbientLighting, header.lumps[56].fileOffset, Version);
 
-            textureStringData = new String[header.Lumps[44].FileLen / 4];
+            textureStringData = new String[header.lumps[44].fileLength / 4];
 
-            Int32[] BSP_TextureStringTable = new Int32[header.Lumps[44].FileLen / 4];
-            reader.ReadArray(ref BSP_TextureStringTable, header.Lumps[44].FileOfs);
+            int[] BSP_TextureStringTable = new Int32[header.lumps[44].fileLength / 4];
+            reader.ReadArray(ref BSP_TextureStringTable, header.lumps[44].fileOffset);
 
             //if (ULoader.ModFolders[0] == "tf")
             //    return file;
 
             for (Int32 i = 0; i < BSP_TextureStringTable.Length; i++)
-                textureStringData[i] = reader.ReadNullTerminatedString(header.Lumps[43].FileOfs + BSP_TextureStringTable[i]);
+                textureStringData[i] = reader.ReadNullTerminatedString(header.lumps[43].fileOffset + BSP_TextureStringTable[i]);
 
             // Replace patched materials
             for (int i = 0; i < textureStringData.Length; i++)
@@ -151,22 +113,22 @@ namespace USource.Formats.Source.VBSP
                 }
             }
 
-            edges = new dedge_t[header.Lumps[12].FileLen / 4];
-            reader.ReadArray(ref edges, header.Lumps[12].FileOfs);
+            edges = new Edge[header.lumps[12].fileLength / 4];
+            reader.ReadSourceObjectArray(ref edges, header.lumps[12].fileOffset, Version);
 
-            reader.BaseStream.Seek(header.Lumps[3].FileOfs, SeekOrigin.Begin);
-            vertices = new Vector3[header.Lumps[3].FileLen / 12];
+            reader.BaseStream.Seek(header.lumps[3].fileOffset, SeekOrigin.Begin);
+            vertices = new Vector3[header.lumps[3].fileLength / 12];
 
             for (Int32 i = 0; i < vertices.Length; i++)
                 vertices[i] = reader.ReadVector3D(true) * USource.settings.sourceToUnityScale;
 
-            surfEdges = new Int32[header.Lumps[13].FileLen / 4];
-            reader.ReadArray(ref surfEdges, header.Lumps[13].FileOfs);
+            surfEdges = new int[header.lumps[13].fileLength / 4];
+            reader.ReadArray(ref surfEdges, header.lumps[13].fileOffset);
 
             entities = new();
-            reader.BaseStream.Seek(header.Lumps[0].FileOfs, SeekOrigin.Begin);
+            reader.BaseStream.Seek(header.lumps[0].fileOffset, SeekOrigin.Begin);
             MatchCollection Matches = Regex.Matches(
-                new(reader.ReadChars(header.Lumps[0].FileLen)),
+                new(reader.ReadChars(header.lumps[0].fileLength)),
                 @"{[^}]*}", RegexOptions.IgnoreCase);
 
             int[] quoteIndexBuffer = new int[4];
@@ -201,25 +163,25 @@ namespace USource.Formats.Source.VBSP
                 entities.Add(ent);
             }
 
-            nodes = new dnode_t[header.Lumps[5].FileLen / 32];
-            reader.ReadArray(ref nodes, header.Lumps[5].FileOfs);
+            nodes = new Node[header.lumps[5].fileLength / 32];
+            reader.ReadSourceObjectArray(ref nodes, header.lumps[5].fileOffset, Version);
 
-            leafs = new dleaf_t[header.Lumps[10].FileLen / 32];
-            reader.ReadArray(ref leafs, header.Lumps[10].FileOfs);
+            leafs = new Leaf[header.lumps[10].fileLength / 32];
+            reader.ReadSourceObjectArray(ref leafs, header.lumps[10].fileOffset, Version);
 
-            leafFaces = new ushort[header.Lumps[16].FileLen / 2];
-            reader.ReadArray(ref leafFaces, header.Lumps[16].FileOfs);
+            leafFaces = new ushort[header.lumps[16].fileLength / 2];
+            reader.ReadArray(ref leafFaces, header.lumps[16].fileOffset);
 
-            reader.BaseStream.Seek(header.Lumps[35].FileOfs, SeekOrigin.Begin);
-            gameLumps = new dgamelump_t[reader.ReadInt32()];
-            reader.ReadArray(ref gameLumps, header.Lumps[35].FileOfs + 4);
+            reader.BaseStream.Seek(header.lumps[35].fileOffset, SeekOrigin.Begin);
+            gameLumps = new GameLumpHeader[reader.ReadInt32()];
+            reader.ReadSourceObjectArray(ref gameLumps, header.lumps[35].fileOffset + 4, Version);
 
             staticPropLumps = new StaticPropLump_t[0];
             for (int i = 0; i < gameLumps.Length; i++)
             {
-                if (gameLumps[i].Id == 1936749168)  // Static prop dictionary
+                if (gameLumps[i].id == 1936749168)  // Static prop dictionary
                 {
-                    reader.BaseStream.Seek(gameLumps[i].FileOfs, SeekOrigin.Begin);
+                    reader.BaseStream.Seek(gameLumps[i].fileOffset, SeekOrigin.Begin);
                     staticPropDict = new String[reader.ReadInt32()];
                     for (Int32 j = 0; j < staticPropDict.Length; j++)
                     {
@@ -235,7 +197,7 @@ namespace USource.Formats.Source.VBSP
                     long nStaticProps = reader.ReadInt32();
                     if (nStaticProps == 0) continue;
                     staticPropLumps = new StaticPropLump_t[nStaticProps];
-                    long staticPropSize = (gameLumps[i].FileLen - (reader.BaseStream.Position - gameLumps[i].FileOfs)) / nStaticProps;
+                    long staticPropSize = (gameLumps[i].fileLength - (reader.BaseStream.Position - gameLumps[i].fileOffset)) / nStaticProps;
                     long staticPropLumpStart = reader.BaseStream.Position;
 
                     for (long l = 0; l < nStaticProps; l++)
@@ -245,7 +207,7 @@ namespace USource.Formats.Source.VBSP
                         Vector3 m_Angles;
 
                         reader.BaseStream.Position = staticPropLumpStart + l * staticPropSize;
-                        switch (gameLumps[i].Version)
+                        switch (gameLumps[i].version)
                         {
                             case 11:
                                 StaticPropLumpV11_t StaticPropLumpV11_t = new StaticPropLumpV11_t();
@@ -316,7 +278,6 @@ namespace USource.Formats.Source.VBSP
             //}
 
         }
-
     }
     public class BspEntity
     {
@@ -351,80 +312,6 @@ namespace USource.Formats.Source.VBSP
             value = default;
             return TryGetValue(key, out string stringFloat) && float.TryParse(stringFloat, out value);
         }
-    }
-    public struct StaticPropLump_t
-    {
-        public Vector3 Origin;            // origin
-        public Vector3 Angles;            // orientation (pitch yaw roll)
-        public ushort PropType;          // index into model name dictionary
-        public ushort FirstLeaf;         // index into leaf array
-        public ushort LeafCount;
-        public byte Solid;             // solidity type
-        public int Skin;              // model skin numbers
-        public float FadeMinDist;
-        public float FadeMaxDist;
-        public Vector3 LightingOrigin;    // for lighting
-        public float ForcedFadeScale;   // fade distance scale
-        public ushort MinDXLevel;        // minimum DirectX version to be visible
-        public ushort MaxDXLevel;        // maximum DirectX version to be visible
-        public uint Flags;
-        public ushort LightmapResX;      // lightmap image width
-        public ushort LightmapResY;      // lightmap image height
-        public byte MinCPULevel;
-        public byte MaxCPULevel;
-        public byte MinGPULevel;
-        public byte MaxGPULevel;
-        public Color32 DiffuseModulation; // per instance color and alpha modulation
-        public bool DisableX360;       // if true, don't show on XBox 360 (4-bytes long)
-        public uint FlagsEx;           // Further bitflags.
-        public float UniformScale;      // Prop scale
-    };
-    [StructLayout(LayoutKind.Sequential)]
-    public struct dplane_t
-    {
-        public Vector3 normal;
-        public float distance;
-        public int type;
-    }
-    /// <summary>
-    /// 28 bytes
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    public struct dleafambientlighting_t
-    {
-        public CompressedLightCube cube;
-        public byte x;
-        public byte y;
-        public byte z;
-        public byte pad;
-    }
-    /// <summary>
-    /// 24 bytes
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    public struct CompressedLightCube
-    {
-        public ColorRGBExp32 color0, color1, color2, color3, color4, color5;
-    }
-    /// <summary>
-    /// 4 bytes
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    public struct ColorRGBExp32
-    {
-        public byte r;
-        public byte g;
-        public byte b;
-        sbyte exponent;
-    }
-    /// <summary>
-    /// 4 bytes
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    public struct dleafambientindex_t
-    {
-        public ushort ambientSampleCount;
-        public ushort firstAmbientSample;
     }
     public class PhysModel
     {

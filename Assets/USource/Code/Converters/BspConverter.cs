@@ -7,8 +7,7 @@ using System.Reflection;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using USource.Formats.Source.VBSP;
-using static USource.Formats.Source.VBSP.VBSPStruct;
+using USource.Formats.Source.BSP;
 
 namespace USource.Converters
 {
@@ -28,12 +27,12 @@ namespace USource.Converters
         };
 
         Location location;
-        VBSPFile bspFile;
+        BSP bspFile;
         ImportOptions importOptions;
         public BspConverter(string sourcePath, Stream stream, ImportOptions importOptions) : base(sourcePath, stream)
         {
             location = new Location(sourcePath, Location.Type.Source);
-            bspFile = new VBSPFile(stream, sourcePath);
+            bspFile = new BSP(stream, sourcePath);
             this.importOptions = importOptions;
         }
         public override UnityEngine.Object CreateAsset(ImportContext ctx)
@@ -47,15 +46,15 @@ namespace USource.Converters
 
             if (importOptions.cullSkybox && skyCamera != null && skyCamera.TryGetTransformedVector3("origin", out Vector3 cameraPosition))
             {
-                dleaf_t skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(cameraPosition));
+                Leaf skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(cameraPosition));
                 skyLeafCluster = skyBoxLeaf.cluster;
                 for (int i = 0; i < bspFile.leafs.Length; i++)
                 {
-                    dleaf_t leaf = bspFile.leafs[i];
+                    Leaf leaf = bspFile.leafs[i];
                     if (leaf.cluster != skyBoxLeaf.cluster) continue;
 
                     skyLeafs.Add((ushort)i);
-                    for (ushort leafIndex = leaf.firstLeafFace; leafIndex < leaf.firstLeafFace + leaf.numLeafFaces; leafIndex++)
+                    for (ushort leafIndex = leaf.firstLeafFace; leafIndex < leaf.firstLeafFace + leaf.leafFaceCount; leafIndex++)
                     {
                         int faceIndex = bspFile.leafFaces[leafIndex];
                         if (!skyFaces.Contains(faceIndex))
@@ -74,24 +73,24 @@ namespace USource.Converters
             // Brushes/World geometry
             for (int modelIndex = 0; modelIndex < bspFile.models.Length; modelIndex++)
             {
-                dmodel_t model = bspFile.models[modelIndex];
+                BrushModel model = bspFile.models[modelIndex];
 
                 if (importOptions.splitWorldGeometry && modelIndex == 0)
                 {
                     GameObject modelGO = null;
 
-                    int modelFaceStart = model.FirstFace;
-                    int modelFacesEnd = model.FirstFace + model.NumFaces;
+                    int modelFaceStart = model.firstFace;
+                    int modelFacesEnd = model.firstFace + model.faceCount;
 
                     for (int leafIndex = 0; leafIndex < bspFile.leafs.Length; leafIndex++)
                     {
                         // Get all faces that belong to this leaf
-                        dleaf_t leaf = bspFile.leafs[leafIndex];
+                        Leaf leaf = bspFile.leafs[leafIndex];
 
                         if (leaf.cluster == skyLeafCluster && importOptions.cullSkybox) continue;
 
                         MeshData meshData = new MeshData(bspFile, leafIndex);
-                        for (int leafFaceIndex = leaf.firstLeafFace; leafFaceIndex < leaf.firstLeafFace + leaf.numLeafFaces; leafFaceIndex++)
+                        for (int leafFaceIndex = leaf.firstLeafFace; leafFaceIndex < leaf.firstLeafFace + leaf.leafFaceCount; leafFaceIndex++)
                         {
                             ushort faceIndex = bspFile.leafFaces[leafFaceIndex];
 
@@ -107,7 +106,7 @@ namespace USource.Converters
                             modelGO = new GameObject($"[{modelIndex}] Model");
                             modelGO.isStatic = true;
                             modelGO.transform.parent = worldGeometryGO.transform;
-                            modelGO.transform.position = model.Origin;
+                            modelGO.transform.position = model.origin;
                             bModelMap[modelIndex] = modelGO;
                         }
 
@@ -120,10 +119,10 @@ namespace USource.Converters
 
                     for (int i = 0; i < bspFile.dispInfo.Length; i++)
                     {
-                        if (skyFaces.Contains((int)bspFile.dispInfo[i].MapFace)) continue;
+                        if (skyFaces.Contains((int)bspFile.dispInfo[i].face)) continue;
 
                         MeshData meshData = new MeshData(bspFile, i);
-                        meshData.AddFace(ref bspFile.faces[bspFile.dispInfo[i].MapFace]);
+                        meshData.AddFace(ref bspFile.faces[bspFile.dispInfo[i].face]);
 
                         if (!meshData.HasGeometry) continue;
 
@@ -132,7 +131,7 @@ namespace USource.Converters
                             modelGO = new GameObject($"[{modelIndex}] Model");
                             modelGO.isStatic = true;
                             modelGO.transform.parent = worldGeometryGO.transform;
-                            modelGO.transform.position = model.Origin;
+                            modelGO.transform.position = model.origin;
                             bModelMap[modelIndex] = modelGO;
                         }
 
@@ -147,7 +146,7 @@ namespace USource.Converters
                 else
                 {
                     MeshData meshData = new MeshData(bspFile, modelIndex);
-                    for (int faceIndex = model.FirstFace; faceIndex < model.FirstFace + model.NumFaces; faceIndex++)
+                    for (int faceIndex = model.firstFace; faceIndex < model.firstFace + model.faceCount; faceIndex++)
                     {
                         if (skyFaces.Contains(faceIndex)) continue;
 
@@ -159,7 +158,7 @@ namespace USource.Converters
                     GameObject modelGO = new GameObject($"[{modelIndex}] Model");
                     modelGO.isStatic = true;
                     modelGO.transform.parent = worldGeometryGO.transform;
-                    modelGO.transform.position = model.Origin;
+                    modelGO.transform.position = model.origin;
                     bModelMap[modelIndex] = modelGO;
 
                     meshData.CreateMesh(modelGO, ctx);
@@ -316,10 +315,10 @@ namespace USource.Converters
                     
                 for (int i = 0; i < bspFile.ldrAmbientIndices.Length; i++)
                 {
-                    dleaf_t leaf = bspFile.leafs[i];
+                    Leaf leaf = bspFile.leafs[i];
                     if (importOptions.cullSkybox && leaf.cluster == skyLeafCluster) continue;
 
-                    dleafambientindex_t indices = bspFile.ldrAmbientIndices[i];
+                    LeafAmbientIndex indices = bspFile.ldrAmbientIndices[i];
                     if (indices.ambientSampleCount == 0) continue;  // Prevents generating probes in solid leaves
 
                     Bounds leafBounds = new Bounds { min = leaf.TransformMin(), max = leaf.TransformMax() };
@@ -331,7 +330,7 @@ namespace USource.Converters
                         Vector3[] probeArray = probePositions as Vector3[];
                         for (int lightIndex = indices.firstAmbientSample; lightIndex < indices.firstAmbientSample + indices.ambientSampleCount; lightIndex++)
                         {
-                            dleafambientlighting_t lightInfo = bspFile.ldrAmbientLighting[lightIndex];
+                            LeafAmbientLighting lightInfo = bspFile.ldrAmbientLighting[lightIndex];
                             Vector3 normalizedLocation = new Vector3(lightInfo.x, lightInfo.z, lightInfo.y) / 255.0f;
                             Vector3 worldLocation = leafBounds.min + new Vector3(boundsSize.x * normalizedLocation.x, boundsSize.y * normalizedLocation.y, boundsSize.z * normalizedLocation.z);
                             probeArray[lightIndex] = worldLocation;
@@ -406,7 +405,7 @@ namespace USource.Converters
         }
         public class MeshData
         {
-            public MeshData(VBSPFile bsp, long key)
+            public MeshData(BSP bsp, long key)
             {
                 this.bsp = bsp;
                 vertices = new();
@@ -415,34 +414,34 @@ namespace USource.Converters
                 this.key = key;
             }
             public bool HasGeometry => vertices.Count > 0 && subMeshes.Count > 0;
-            readonly VBSPFile bsp;
+            readonly BSP bsp;
             readonly long key;
             List<WorldVertex> vertices;
             Dictionary<int, List<uint>> subMeshes;
             List<int> subMeshMap = new();
-            public void AddFace(ref dface_t face)
+            public void AddFace(ref Face face)
             {
-                texinfo_t textureInfo = bsp.texInfo[face.TexInfo];
-                dtexdata_t textureData = bsp.texData[textureInfo.TexData];
-                string materialPath = bsp.textureStringData[textureData.NameStringTableID].ToLower();
+                TextureInfo textureInfo = bsp.texInfo[face.textureInfo];
+                TextureData textureData = bsp.texData[textureInfo.textureDataIndex];
+                string materialPath = bsp.textureStringData[textureData.nameStringTableIndex].ToLower();
 
                 if (USource.noRenderMaterials.Contains(materialPath) || USource.noCreateMaterials.Contains(materialPath))  // Don't include sky and other tool textures
                     return;
 
-                if (!subMeshes.TryGetValue(textureData.NameStringTableID, out List<uint> subIndices))  // Ensure submesh/indices exist
+                if (!subMeshes.TryGetValue(textureData.nameStringTableIndex, out List<uint> subIndices))  // Ensure submesh/indices exist
                 {
-                    subMeshMap.Add(textureData.NameStringTableID);
+                    subMeshMap.Add(textureData.nameStringTableIndex);
                     subIndices = new();
-                    subMeshes[textureData.NameStringTableID] = subIndices;
+                    subMeshes[textureData.nameStringTableIndex] = subIndices;
                 }
 
-                if (face.DispInfo != -1)  // face is a displacement
+                if (face.displacementInfo != -1)  // face is a displacement
                 {
-                    ddispinfo_t dispInfo = bsp.dispInfo[face.DispInfo];
+                    DisplacementInfo dispInfo = bsp.dispInfo[face.displacementInfo];
 
                     // Triangles
-                    int vertexEdgeCount = (1 << dispInfo.Power) + 1;
-                    int edgeCount = 1 << dispInfo.Power;
+                    int vertexEdgeCount = (1 << dispInfo.power) + 1;
+                    int edgeCount = 1 << dispInfo.power;
                     for (int i = 0; i < edgeCount * edgeCount; i++)
                     {
                         int x = i % edgeCount;
@@ -471,17 +470,19 @@ namespace USource.Converters
                     }
 
                     // Vertices
-                    Vector3 basePosition = SourceTransformPointHammer(dispInfo.StartPosition);
+                    Vector3 basePosition = SourceTransformPointHammer(dispInfo.startPosition);
                     // determine the closest vertex on the face
                     Vector3[] faceVertices = new Vector3[4];
                     int minimumVertexIndex = -1;
                     float minimumVertexDistance = float.MaxValue;
-                    for (int surfEdgeIndex = face.FirstEdge, i = 0; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++, i++)
+                    for (int surfEdgeIndex = face.firstEdgeIndex, i = 0; surfEdgeIndex < face.firstEdgeIndex + face.edgeCount; surfEdgeIndex++, i++)
                     {
                         int surfEdge = bsp.surfEdges[surfEdgeIndex];
-                        int edgeIndex = surfEdge > 0 ? 0 : 1;
+                        int edgeIndex = surfEdge > 0 ? 
+                            bsp.edges[Mathf.Abs(surfEdge)].index0 : 
+                            bsp.edges[Mathf.Abs(surfEdge)].index1;
 
-                        Vector3 vertex = EnsureFinite(bsp.vertices[bsp.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
+                        Vector3 vertex = EnsureFinite(bsp.vertices[edgeIndex]);
                         faceVertices[i] = vertex;
                         float distance = Vector3.Distance(basePosition, vertex);
                         if (distance < minimumVertexDistance)
@@ -493,8 +494,8 @@ namespace USource.Converters
 
                     int GetFaceIndex(int index) => (index + minimumVertexIndex) % 4;
 
-                    Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, -textureInfo.TextureVecs[0].x);
-                    Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, -textureInfo.TextureVecs[1].x);
+                    Vector3 tS = new Vector3(-textureInfo.textureVecs0.y, textureInfo.textureVecs0.z, -textureInfo.textureVecs0.x);
+                    Vector3 tT = new Vector3(-textureInfo.textureVecs1.y, textureInfo.textureVecs1.z, -textureInfo.textureVecs1.x);
 
                     Vector3 LeftEdge = faceVertices[GetFaceIndex(1)] - faceVertices[GetFaceIndex(0)];
                     Vector3 RightEdge = faceVertices[GetFaceIndex(2)] - faceVertices[GetFaceIndex(3)];
@@ -517,15 +518,15 @@ namespace USource.Converters
 
                         for (int z = 0; z < vertexEdgeCount; z++)
                         {
-                            Int32 DispVertIndex = dispInfo.DispVertStart + (x * vertexEdgeCount + z);
-                            dDispVert DispVertInfo = bsp.dispVerts[DispVertIndex];
+                            Int32 DispVertIndex = dispInfo.displacementVertexStart + (x * vertexEdgeCount + z);
+                            DisplacementVertex DispVertInfo = bsp.dispVerts[DispVertIndex];
 
                             Vector3 FlatVertex = LeftEnd + (LeftRightStep * z);
-                            Vector3 DispVertex = Converter.SourceTransformDirection(DispVertInfo.Vec) * (DispVertInfo.Dist * USource.settings.sourceToUnityScale);
+                            Vector3 DispVertex = Converter.SourceTransformDirection(DispVertInfo.displacement) * (DispVertInfo.distance * USource.settings.sourceToUnityScale);
                             DispVertex += FlatVertex;
 
-                            float s = (Vector3.Dot(FlatVertex, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
-                            float t = -(Vector3.Dot(FlatVertex, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
+                            float s = (Vector3.Dot(FlatVertex, tS) + textureInfo.textureVecs0.w * USource.settings.sourceToUnityScale) / (textureData.viewWidth * USource.settings.sourceToUnityScale);
+                            float t = -(Vector3.Dot(FlatVertex, tT) + textureInfo.textureVecs1.w * USource.settings.sourceToUnityScale) / (textureData.viewHeight * USource.settings.sourceToUnityScale);
 
                             vertices.Add(new WorldVertex { position = DispVertex, uv = new half2(new Vector2(s, t)) });
                         }
@@ -533,25 +534,27 @@ namespace USource.Converters
                 }
                 else  // flat face
                 {
-                    for (int index = 1, k = 0; index < face.NumEdges - 1; index++, k += 3)
+                    for (int index = 1, k = 0; index < face.edgeCount - 1; index++, k += 3)
                     {
                         subIndices.Add((uint)vertices.Count);
                         subIndices.Add((uint)(vertices.Count + index));
                         subIndices.Add((uint)(vertices.Count + index + 1));
                     }
 
-                    Vector3 tS = new Vector3(-textureInfo.TextureVecs[0].y, textureInfo.TextureVecs[0].z, textureInfo.TextureVecs[0].x);
-                    Vector3 tT = new Vector3(-textureInfo.TextureVecs[1].y, textureInfo.TextureVecs[1].z, textureInfo.TextureVecs[1].x);
+                    Vector3 tS = new Vector3(-textureInfo.textureVecs0.y, textureInfo.textureVecs0.z, textureInfo.textureVecs0.x);
+                    Vector3 tT = new Vector3(-textureInfo.textureVecs1.y, textureInfo.textureVecs1.z, textureInfo.textureVecs1.x);
 
-                    for (int surfEdgeIndex = face.FirstEdge; surfEdgeIndex < face.FirstEdge + face.NumEdges; surfEdgeIndex++)
+                    for (int surfEdgeIndex = face.firstEdgeIndex; surfEdgeIndex < face.firstEdgeIndex + face.edgeCount; surfEdgeIndex++)
                     {
                         int surfEdge = bsp.surfEdges[surfEdgeIndex];
-                        int edgeIndex = surfEdge > 0 ? 0 : 1;
+                        int edgeIndex = surfEdge > 0 ?
+                            bsp.edges[Mathf.Abs(surfEdge)].index0 :
+                            bsp.edges[Mathf.Abs(surfEdge)].index1;
 
                         WorldVertex vertex = new();
-                        vertex.position = EnsureFinite(bsp.vertices[bsp.edges[Mathf.Abs(surfEdge)].V[edgeIndex]]);
-                        float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.TextureVecs[0].w * USource.settings.sourceToUnityScale) / (textureData.View_Width * USource.settings.sourceToUnityScale);
-                        float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.TextureVecs[1].w * USource.settings.sourceToUnityScale) / (textureData.View_Height * USource.settings.sourceToUnityScale);
+                        vertex.position = EnsureFinite(bsp.vertices[edgeIndex]);
+                        float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.textureVecs0.w * USource.settings.sourceToUnityScale) / (textureData.viewWidth * USource.settings.sourceToUnityScale);
+                        float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.textureVecs1.w * USource.settings.sourceToUnityScale) / (textureData.viewHeight * USource.settings.sourceToUnityScale);
                         vertex.uv = new half2(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
 
                         vertices.Add(vertex);

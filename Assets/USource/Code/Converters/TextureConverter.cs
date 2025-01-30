@@ -113,8 +113,6 @@ namespace USource.Converters
             unityTexture.Compress(true);
             unityTexture.Apply(true, true);
 
-            unityObject = unityTexture;
-
             return unityTexture;
         }
     }

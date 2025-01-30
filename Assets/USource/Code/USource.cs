@@ -62,17 +62,6 @@ namespace USource
 
             return path.Remove(extensionIndex, path.Length - extensionIndex);
         }
-        public static string GetUnityAssetExtension(System.Type type)
-        {
-            if (type == typeof(UnityEngine.Material))
-                return "mat";
-            if (type == typeof(GameObject))
-                return "prefab";
-            if (type == typeof(Texture2D))
-                return "png";
-
-            return "";
-        }
         public static string AssetPathToSourcePath(string assetPath)
         {
             string preceedingPath = $"Assets/USource/Assets/";
