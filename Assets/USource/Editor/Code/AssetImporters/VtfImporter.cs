@@ -24,7 +24,7 @@ namespace USource.AssetImporters
 
             string sourcePath = USource.AssetPathToSourcePath(ctx.assetPath);
 
-            Converters.TextureConverter texture = new Converters.TextureConverter(sourcePath, stream, options);
+            Converters.TextureConverter texture = new Converters.TextureConverter(stream, options);
             UnityEngine.Texture obj = texture.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as UnityEngine.Texture;
             ctx.AddObjectToAsset("texture", obj);
             ctx.SetMainObject(obj);

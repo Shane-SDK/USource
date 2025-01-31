@@ -47,7 +47,7 @@ namespace USource.AssetImporters
             mdlStream.Close();
             mdlStream = File.OpenRead(ctx.assetPath);
 
-            ModelConverter model = new ModelConverter(location.SourcePath, mdlStream, vvdStream, vtxStream, phyStream, importOptions);
+            ModelConverter model = new ModelConverter(mdlStream, vvdStream, vtxStream, phyStream, importOptions);
             model.shadowCastingMode = shadowCastingMode;
             GameObject obj = model.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as GameObject;
 

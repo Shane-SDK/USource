@@ -16,7 +16,7 @@ namespace USource.AssetImporters
         public override void OnImportAsset(AssetImportContext ctx)
         {
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
-            BspConverter converter = new BspConverter(location.SourcePath, System.IO.File.OpenRead(ctx.assetPath), importOptions);
+            BspConverter converter = new BspConverter(System.IO.File.OpenRead(ctx.assetPath), importOptions);
 
             if (importOptions.setupDependencies)
             {

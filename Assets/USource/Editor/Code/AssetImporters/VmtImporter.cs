@@ -31,7 +31,7 @@ namespace USource.AssetImporters
             stream.Close();
             stream = File.OpenRead(ctx.assetPath);
 
-            Converters.MaterialConverter materialConverter = new Converters.MaterialConverter(location.SourcePath, stream);
+            Converters.MaterialConverter materialConverter = new Converters.MaterialConverter(stream);
             flags = materialConverter.flags;
             maps = new();
             foreach (KeyValuePair<Converters.MaterialConverter.Map, Location> pair in materialConverter.Maps)

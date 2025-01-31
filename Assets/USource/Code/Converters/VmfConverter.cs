@@ -14,15 +14,15 @@ using RealtimeCSG.Components;
 
 namespace USource.Converters
 {
-    public class VmfConverter : Converter
+    public class VmfConverter : IConverter
     {
         Stream stream;
-        public VmfConverter(string sourcePath, Stream stream) : base(sourcePath, stream)
+        public VmfConverter(Stream stream)
         {
             this.stream = stream;
         }
 
-        public override UnityEngine.Object CreateAsset(ImportContext ctx)
+        public UnityEngine.Object CreateAsset(ImportContext ctx)
         {
 #if UNITY_EDITOR
             return CreateFromVMF(stream, ctx);
@@ -155,13 +155,13 @@ namespace USource.Converters
 
                         float sizeFactor = imageSize / 512.0f;
 
-                        uvScale[u] = Converter.uvScaleFactor / (scale * 16) / sizeFactor;
+                        uvScale[u] = IConverter.uvScaleFactor / (scale * 16) / sizeFactor;
                         uvTranslation[u] = translation / imageSize;
 
                         if (u == 0)
-                            uWorldDirection = Converter.AxisConvertSource(direction);
+                            uWorldDirection = IConverter.AxisConvertSource(direction);
                         else
-                            vWorldDirection = Converter.AxisConvertSource(direction);
+                            vWorldDirection = IConverter.AxisConvertSource(direction);
                     }
 
                     // Convert uv directions from world to local space
@@ -249,7 +249,7 @@ namespace USource.Converters
                             vec3[c] = floatValue;
                         else return false;
                     }
-                    points[i] = Converter.SourceTransformPoint(vec3);
+                    points[i] = IConverter.SourceTransformPoint(vec3);
                 }
 
                 plane = new Plane(points[0], points[1], points[2]);
@@ -297,7 +297,7 @@ namespace USource.Converters
                 Quaternion rotation = Quaternion.identity;
 
                 if (block.TryGetValue("origin", out position))
-                    position = Converter.SourceTransformPoint(position);
+                    position = IConverter.SourceTransformPoint(position);
                 if (block.TryGetValue("angles", out eulerAngles))
                 {
                     if (block.TryGetValue("pitch", out float pitch))

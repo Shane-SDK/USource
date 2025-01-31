@@ -11,7 +11,7 @@ using USource.Formats.Source.BSP;
 
 namespace USource.Converters
 {
-    public class BspConverter : Converter
+    public class BspConverter : IConverter
     {
         public readonly static VertexAttributeDescriptor[] staticVertexDescriptor = new VertexAttributeDescriptor[]
         {
@@ -29,13 +29,12 @@ namespace USource.Converters
         Location location;
         BSP bspFile;
         ImportOptions importOptions;
-        public BspConverter(string sourcePath, Stream stream, ImportOptions importOptions) : base(sourcePath, stream)
+        public BspConverter(Stream stream, ImportOptions importOptions)
         {
-            location = new Location(sourcePath, Location.Type.Source);
-            bspFile = new BSP(stream, sourcePath);
+            bspFile = new BSP(stream);
             this.importOptions = importOptions;
         }
-        public override UnityEngine.Object CreateAsset(ImportContext ctx)
+        public UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             BspEntity skyCamera = bspFile.entities.FirstOrDefault(e => e.values.TryGetValue("classname", out string className) && className == "sky_camera");
             HashSet<int> skyFaces = new();
@@ -470,7 +469,7 @@ namespace USource.Converters
                     }
 
                     // Vertices
-                    Vector3 basePosition = SourceTransformPointHammer(dispInfo.startPosition);
+                    Vector3 basePosition = IConverter.SourceTransformPointHammer(dispInfo.startPosition);
                     // determine the closest vertex on the face
                     Vector3[] faceVertices = new Vector3[4];
                     int minimumVertexIndex = -1;
@@ -522,7 +521,7 @@ namespace USource.Converters
                             DisplacementVertex DispVertInfo = bsp.dispVerts[DispVertIndex];
 
                             Vector3 FlatVertex = LeftEnd + (LeftRightStep * z);
-                            Vector3 DispVertex = Converter.SourceTransformDirection(DispVertInfo.displacement) * (DispVertInfo.distance * USource.settings.sourceToUnityScale);
+                            Vector3 DispVertex = IConverter.SourceTransformDirection(DispVertInfo.displacement) * (DispVertInfo.distance * USource.settings.sourceToUnityScale);
                             DispVertex += FlatVertex;
 
                             float s = (Vector3.Dot(FlatVertex, tS) + textureInfo.textureVecs0.w * USource.settings.sourceToUnityScale) / (textureData.viewWidth * USource.settings.sourceToUnityScale);

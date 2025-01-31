@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace USource.Converters
 {
-    public class MaterialConverter : Converter
+    public class MaterialConverter : IConverter
     {
         public enum Map
         {
@@ -17,9 +17,9 @@ namespace USource.Converters
         Formats.Source.VTF.VMTFile vmt;
         Dictionary<Map, Location> maps;
         public MaterialFlags flags;
-        public MaterialConverter(string sourcePath, System.IO.Stream stream) : base(sourcePath, stream)
+        public MaterialConverter(System.IO.Stream stream)
         {
-            this.vmt = new Formats.Source.VTF.VMTFile(stream, sourcePath);
+            this.vmt = new Formats.Source.VTF.VMTFile(stream);
 
             maps = new();
 
@@ -59,7 +59,7 @@ namespace USource.Converters
             if (vmt.ContainsParma("%CompileSkip") || vmt.ContainsParma("%CompileHint") || vmt.ContainsParma("%CompileLadder"))
                 flags |= MaterialFlags.Invisible | MaterialFlags.NoShadows | MaterialFlags.NonSolid;
         }
-        public override UnityEngine.Object CreateAsset(ImportContext ctx)
+        public UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             // Check if this is including a material and just return that
             //if (vmt.TryGetValue("include", out string includedMaterialPath))

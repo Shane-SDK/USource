@@ -13,7 +13,7 @@ using USource.Formats.Source.BSP;
 
 namespace USource.Converters
 {
-    public class ModelConverter : Converter
+    public class ModelConverter : IConverter
     {
         [System.Flags]
         public enum ImportOptions
@@ -46,7 +46,7 @@ namespace USource.Converters
         public Formats.Source.MDL.MDLFile mdl;
         public List<AnimationClip> clips;
         public readonly ImportOptions importOptions;
-        public ModelConverter(string sourcePath, Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream, ImportOptions importOptions) : base(sourcePath, stream)
+        public ModelConverter(Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream, ImportOptions importOptions)
         {
             stream.Position = 0;
             mdl = new MDLFile(stream, physStream, true);
@@ -58,7 +58,7 @@ namespace USource.Converters
 
             this.importOptions = importOptions;
         }
-        public override UnityEngine.Object CreateAsset(ImportContext ctx)
+        public UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             bool isStatic = mdl.MDL_Header.flags.HasFlag(StudioHDRFlags.STUDIOHDR_FLAGS_STATIC_PROP);
 
@@ -163,8 +163,8 @@ namespace USource.Converters
 
                     for (Int32 i = 0; i < Vertexes.Length; i++)
                     {
-                        Vector3 position = SourceTransformPoint(Vertexes[i].m_vecPosition);
-                        Vector3 normal = SourceTransformDirection(Vertexes[i].m_vecNormal);
+                        Vector3 position = IConverter.SourceTransformPoint(Vertexes[i].m_vecPosition);
+                        Vector3 normal = IConverter.SourceTransformDirection(Vertexes[i].m_vecNormal);
                         Vector2 uv = Vertexes[i].m_vecTexCoord;
 
                         vertices.Add(new Vertex

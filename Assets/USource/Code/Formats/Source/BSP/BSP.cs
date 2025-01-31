@@ -214,8 +214,8 @@ namespace USource.Formats.Source.BSP
                                 reader.ReadType(ref StaticPropLumpV11_t);
 
                                 pathIndex = StaticPropLumpV11_t.m_PropType;
-                                m_Origin = Converters.Converter.SourceTransformPointHammer(StaticPropLumpV11_t.m_Origin);
-                                m_Angles = Converters.Converter.SourceTransformAnglesHammer(StaticPropLumpV11_t.m_Angles);
+                                m_Origin = Converters.IConverter.SourceTransformPointHammer(StaticPropLumpV11_t.m_Origin);
+                                m_Angles = Converters.IConverter.SourceTransformAnglesHammer(StaticPropLumpV11_t.m_Angles);
 
                                 break;
                             case 600:
@@ -223,8 +223,8 @@ namespace USource.Formats.Source.BSP
                                 reader.ReadType(ref propLump);
 
                                 pathIndex = propLump.m_PropType;
-                                m_Origin = Converters.Converter.SourceTransformPointHammer(propLump.m_Origin);
-                                m_Angles = Converters.Converter.SourceTransformAnglesHammer(propLump.m_Angles);
+                                m_Origin = Converters.IConverter.SourceTransformPointHammer(propLump.m_Origin);
+                                m_Angles = Converters.IConverter.SourceTransformAnglesHammer(propLump.m_Angles);
 
                                 break;
                             default:
@@ -232,8 +232,8 @@ namespace USource.Formats.Source.BSP
                                 reader.ReadType(ref StaticPropLumpV4_t);
 
                                 pathIndex = StaticPropLumpV4_t.m_PropType;
-                                m_Origin = Converters.Converter.SourceTransformPointHammer(StaticPropLumpV4_t.m_Origin);
-                                m_Angles = Converters.Converter.SourceTransformAnglesHammer(StaticPropLumpV4_t.m_Angles);
+                                m_Origin = Converters.IConverter.SourceTransformPointHammer(StaticPropLumpV4_t.m_Origin);
+                                m_Angles = Converters.IConverter.SourceTransformAnglesHammer(StaticPropLumpV4_t.m_Angles);
                                 break;
                         }
 
@@ -286,7 +286,7 @@ namespace USource.Formats.Source.BSP
         {
             if (values.TryGetValue(key, out string posString) && Conversions.TryParseVector3(posString, out unityPosition))
             {
-                unityPosition = Converters.Converter.SourceTransformPointHammer(unityPosition);
+                unityPosition = Converters.IConverter.SourceTransformPointHammer(unityPosition);
                 return true;
             }
 

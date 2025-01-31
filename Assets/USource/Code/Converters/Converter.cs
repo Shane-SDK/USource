@@ -5,18 +5,13 @@ using UnityEngine;
 
 namespace USource.Converters
 {
-    public abstract class Converter
+    public interface IConverter
     {
         public const float uvScaleFactor = 1.25f;
-        public readonly string sourcePath;
-        public Converter(string sourcePath, System.IO.Stream stream)
+        public UnityEngine.Object CreateAsset(ImportContext ctx);
+        public static IConverter FromLocation(Location location, System.IO.Stream assetStream)
         {
-            this.sourcePath = sourcePath;
-        }
-        public abstract UnityEngine.Object CreateAsset(ImportContext ctx);
-        public static Converter FromLocation(Location location, System.IO.Stream assetStream)
-        {
-            Converter converter;
+            IConverter converter;
             string extension = System.IO.Path.GetExtension(location.SourcePath);
 
             if (location.ResourceProvider == null && USource.ResourceManager.TryFindResourceProvider(location, out IResourceProvider provider))
@@ -50,21 +45,21 @@ namespace USource.Converters
                     // Physics model
                     TryGetStream(location.SourcePath.Replace(".mdl", ".phy"), out Stream physStream);
 
-                    converter = new Converters.ModelConverter(location.SourcePath, assetStream, vvdStream, vtxStream, physStream, ModelConverter.ImportOptions.Geometry);
+                    converter = new Converters.ModelConverter(assetStream, vvdStream, vtxStream, physStream, ModelConverter.ImportOptions.Geometry);
 
                     physStream?.Close();
                     vvdStream?.Close();
                     vtxStream?.Close();
                     break;
                 case ".vmt":
-                    converter = new Converters.MaterialConverter(location.SourcePath, assetStream);
+                    converter = new Converters.MaterialConverter(assetStream);
                     break;
                 case ".vtf":
-                    converter = new Converters.TextureConverter(location.SourcePath, assetStream, default);
+                    converter = new Converters.TextureConverter(assetStream, default);
                     break;
 #if RealtimeCSG
                 case ".vmf":
-                    converter = new VmfConverter(location.SourcePath, assetStream);
+                    converter = new VmfConverter(assetStream);
                     break;
 #endif
                 default:

@@ -3,7 +3,7 @@ using USource.Formats.Source.VTF;
 
 namespace USource.Converters
 {
-    public class TextureConverter : Converter
+    public class TextureConverter : IConverter
     {
         public enum ColorMode
         {
@@ -25,12 +25,12 @@ namespace USource.Converters
             mipMaps = true, 
             wrapMode = TextureWrapMode.Repeat 
         };
-        public TextureConverter(string sourcePath, System.IO.Stream stream, ImportOptions importOptions) : base(sourcePath, stream)
+        public TextureConverter(System.IO.Stream stream, ImportOptions importOptions)
         {
             vtf = new VTFFile(stream);
             this.importOptions = importOptions;
         }
-        public override UnityEngine.Object CreateAsset(ImportContext ctx)
+        public UnityEngine.Object CreateAsset(ImportContext ctx)
         {
             // Create texture object
             Texture2D unityTexture;

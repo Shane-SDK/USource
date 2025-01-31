@@ -284,14 +284,14 @@ namespace USource.Formats.Source.BSP
 
         public Vector3 TransformMin()
         {
-            Vector3 min = Converter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = Converter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Min(min.x, max.x), Mathf.Min(min.y, max.y), Mathf.Min(min.z, max.z));
         }
         public Vector3 TransformMax()
         {
-            Vector3 min = Converter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = Converter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Max(min.x, max.x), Mathf.Max(min.y, max.y), Mathf.Max(min.z, max.z));
         }
         public bool Contains(Vector3 c, float tolerance = 0.01f)
@@ -343,14 +343,14 @@ namespace USource.Formats.Source.BSP
 
         public Vector3 TransformMin()
         {
-            Vector3 min = Converter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = Converter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Min(min.x, max.x), Mathf.Min(min.y, max.y), Mathf.Min(min.z, max.z));
         }
         public Vector3 TransformMax()
         {
-            Vector3 min = Converter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = Converter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Max(min.x, max.x), Mathf.Max(min.y, max.y), Mathf.Max(min.z, max.z));
         }
         public bool Contains(Vector3 c)

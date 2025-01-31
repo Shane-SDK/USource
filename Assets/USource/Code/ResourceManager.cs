@@ -183,7 +183,7 @@ namespace USource
 
 
                 // create object and store in cache
-                Converter converter = Converter.FromLocation(dependency, stream);
+                IConverter converter = IConverter.FromLocation(dependency, stream);
                 unityObject = converter.CreateAsset( new ImportContext(ImportMode.CreateAndCache) );
                 if (unityObject != null)
                     Cache(dependency, unityObject);

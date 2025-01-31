@@ -28,7 +28,7 @@ namespace USource.AssetImporters
             stream.Close();
             stream = System.IO.File.OpenRead(ctx.assetPath);
 
-            VmfConverter converter = new VmfConverter(location.SourcePath, stream);
+            VmfConverter converter = new VmfConverter(stream);
             UnityEngine.Object obj = converter.CreateAsset(new ImportContext(ImportMode.AssetDatabase, ctx));
             ctx.AddObjectToAsset("level", obj);
             ctx.SetMainObject(obj);
