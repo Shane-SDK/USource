@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using Unity.VisualScripting.YamlDotNet.Core;
 using UnityEngine;
+using USource.Formats.Source.PHYS;
 using USource.SourceAsset;
 
 namespace USource.Formats.Source.BSP
@@ -242,41 +244,51 @@ namespace USource.Formats.Source.BSP
                 }
             }
 
-            //reader.BaseStream.Position = header.Lumps[29].FileOfs;
-            //physModels = new();
-            //physModelHeaders = new();
-            //int iteration = 0;
-            //while (true)
-            //{
-            //    if (iteration > 10) break;
-            //    iteration++;
-            //    dphysmodel_t header = default;
-            //    header.modelIndex = -1;
-            //    reader.ReadType(ref header);
-            //    if (header.modelIndex == -1) break;
+            reader.BaseStream.Position = header.lumps[29].fileOffset;
+            physModels = new();
+            physModelHeaders = new();
+            int iteration = 0;
+            while (true)
+            {
+                if (iteration > 100) break;
+                iteration++;
 
-            //    PhysModel model = new PhysModel();
-            //    physModels[header.modelIndex] = model;
-            //    physModelHeaders.Add(header);
-            //    for (int k = 0; k < header.solidCount; k++)
-            //    {
-            //        MDL.PhysSolid[] solids = Source.MDL.PhysSolid.ReadCollisionData(reader, header.solidCount, true);
-            //        model.physSolids = solids;
+                PhysModelHeader modelHeader = new();
+                modelHeader.ReadToObject(reader);
+                if (modelHeader.modelIndex == -1) break;  // lump is terminated by this
 
-            //        // Apply 90 deg rotation along y axis
-            //        for (int i = 0; i < solids.Length; i++)
-            //        {
-            //            MDL.PhysSolid solid = solids[i];
-            //            for (int v = 0; v < solid.vertices.Length; v++)
-            //            {
-            //                solid.vertices[v] = Quaternion.AngleAxis(90, Vector3.up) * solid.vertices[v];
-            //            }
-            //        }
-            //    }
+                //Debug.Log($"BSP Phys Model {iteration - 1}, {reader.BaseStream.Position.ToString("X")}");
 
-            //    byte[] keyData = reader.ReadBytes(header.keydataSize);
-            //}
+                long currentPos = reader.BaseStream.Position;
+                CollisionData[] solids = new CollisionData[modelHeader.solidCount];
+                physModels[modelHeader.modelIndex] = new PhysModel { solids = solids, modelIndex = modelHeader.modelIndex };
+                for (int i = 0; i < modelHeader.solidCount; i++)
+                {
+                    //Debug.Log($"Collision Data {i}, {reader.BaseStream.Position.ToString("X")}");
+                    solids[i] = new PHYS.CollisionData(modelHeader.dataSize);
+                    solids[i].ReadToObject(reader);
+                }
 
+                reader.BaseStream.Position = currentPos + modelHeader.dataSize + modelHeader.keyDataSize;
+                // key data
+            }
+        }
+    }
+    /// <summary>
+    /// BSP Phys Lump header for each model
+    /// </summary>
+    public struct PhysModelHeader : ISourceObject
+    {
+        public int modelIndex;
+        public int dataSize;
+        public int keyDataSize;
+        public int solidCount;
+        public void ReadToObject(UReader reader, int version = 0)
+        {
+            modelIndex = reader.ReadInt32();
+            dataSize = reader.ReadInt32();
+            keyDataSize = reader.ReadInt32();
+            solidCount = reader.ReadInt32();
         }
     }
     public class BspEntity
@@ -316,7 +328,6 @@ namespace USource.Formats.Source.BSP
     public class PhysModel
     {
         public int modelIndex;
-        public Source.MDL.PhysSolid[] physSolids;
-        public KeyValues keyValues;
+        public CollisionData[] solids;
     }
 }

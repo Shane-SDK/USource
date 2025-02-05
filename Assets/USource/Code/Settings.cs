@@ -9,11 +9,7 @@ namespace USource
     {
         public List<string> GamePaths => gamePaths;
         public float sourceToUnityScale = 0.025f;
-#if UNITY_EDITOR
-        [HideInInspector]
-        public UnityEditor.Presets.Preset textureImporterPreset;
-        [UnityEngine.SerializeField, UnityEngine.HideInInspector]
-#endif
+        [UnityEngine.SerializeField]
         List<string> gamePaths;
         [Header("WARNING: SLOW!")]
         public bool readBSPFiles = false;

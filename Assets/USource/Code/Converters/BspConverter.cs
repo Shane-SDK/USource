@@ -165,20 +165,21 @@ namespace USource.Converters
             }
 
             // World Collision
-    //        if (importOptions.importWorldColliders)
-    //        {
-    //            foreach (KeyValuePair<int, PhysModel> pair in bspFile.physModels)
-    //            {
-    //                GameObject go = bModelMap[pair.Key];
-    //                ModelConverter.CreateColliders(go, pair.Value.physSolids);
-    //#if UNITY_EDITOR
-    //                foreach (MeshCollider mesh in go.GetComponentsInChildren<MeshCollider>())
-    //                {
-    //                    ctx.AssetImportContext.AddObjectToAsset("world collider", mesh.sharedMesh);
-    //                }
-    //#endif
-    //            }
-    //        }
+            if (importOptions.importWorldColliders)
+            {
+                foreach (KeyValuePair<int, PhysModel> pair in bspFile.physModels)
+                {
+                    if (!bModelMap.TryGetValue(pair.Key, out GameObject go)) continue;
+
+                    ModelConverter.CreateColliders(go, pair.Value.solids, pair.Key != 0);
+#if UNITY_EDITOR
+                    foreach (MeshCollider mesh in go.GetComponentsInChildren<MeshCollider>())
+                    {
+                        ctx.AssetImportContext.AddObjectToAsset("world collider", mesh.sharedMesh);
+                    }
+#endif
+                }
+            }
 
             // Static props
             GameObject staticPropsGO = new GameObject("Static Props");
@@ -386,7 +387,7 @@ namespace USource.Converters
             public bool cullSkybox;
             public bool splitWorldGeometry;
             public bool setupDependencies;
-            //public bool importWorldColliders;
+            public bool importWorldColliders;
             public LightProbeMode probeMode;
         }
         public enum LightProbeMode

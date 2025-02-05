@@ -10,6 +10,7 @@ using System.IO;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
 using USource.Formats.Source.BSP;
+using USource.Formats.Source.PHYS;
 
 namespace USource.Converters
 {
@@ -412,118 +413,118 @@ namespace USource.Converters
                 }
             }
 
-            if (importOptions.HasFlag(ImportOptions.Physics) && mdl.HasPhysics)
-            {
-                for (int s = 0; s < mdl.physSolids.Length; s++)
-                {
-                    PhysSolid solid = mdl.physSolids[s];
-                    GameObject go = model;
-                    Transform transform = model.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == solid.boneName.ToLower());
-                    if (transform != null)
-                        go = transform.gameObject;
-                    for (int p = 0; p < solid.parts.Length; p++)
-                    {
-                        if (solid.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
-                        {
-                            BoxCollider col = go.AddComponent<BoxCollider>();
-                            col.center = boxCenter;
-                            col.size = boxSize;
-                        }
-                        else  // Create mesh
-                        {
-                            
-                            PhysPart part = solid.parts[p];
-                            Mesh mesh = new Mesh();
+            //if (importOptions.HasFlag(ImportOptions.Physics) && mdl.HasPhysics)
+            //{
+            //    for (int s = 0; s < mdl.physSolids.Length; s++)
+            //    {
+            //        PhysSolid solid = mdl.physSolids[s];
+            //        GameObject go = model;
+            //        Transform transform = model.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == solid.boneName.ToLower());
+            //        if (transform != null)
+            //            go = transform.gameObject;
+            //        for (int p = 0; p < solid.parts.Length; p++)
+            //        {
+            //            if (solid.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
+            //            {
+            //                BoxCollider col = go.AddComponent<BoxCollider>();
+            //                col.center = boxCenter;
+            //                col.size = boxSize;
+            //            }
+            //            else  // Create mesh
+            //            {
+            //                PhysPart part = solid.parts[p];
+            //                Mesh mesh = new Mesh();
 
-                            Dictionary<Vector3, int> indexMap = new();
-                            List<PhysVertex> vertices = new();
-                            int[] indices = new int[part.triangles.Length];
-                            Vector3 boundsMin = Vector3.one * float.MaxValue;
-                            Vector3 boundsMax = Vector3.one * float.MinValue;
+            //                int[] indices = new int[part.triangles.Length];
+            //                Vector3 boundsMin = Vector3.one * float.MaxValue;
+            //                Vector3 boundsMax = Vector3.one * float.MinValue;
 
-                            for (int i = 0; i < indices.Length; i++)
-                            {
-                                // get vertex this index corresponds to
-                                Vector3 vertPosition = solid.vertices[part.triangles[i]];
-                                if (indexMap.TryGetValue(vertPosition, out int newIndex))  // re using a vertex, use existing indices
-                                {
-                                    indices[i] = newIndex;
-                                }
-                                else  // New index (vertex) is being used, add to vertices
-                                {
-                                    indexMap[vertPosition] = vertices.Count;
-                                    indices[i] = vertices.Count;
-                                    vertices.Add(new PhysVertex { position = vertPosition });
-                                    boundsMin = Vector3.Min(boundsMin, vertPosition);
-                                    boundsMax = Vector3.Max(boundsMax, vertPosition);
-                                }
-                            }
+            //                for (int i = 0; i < indices.Length; i++)
+            //                {
+            //                    // get vertex this index corresponds to
+            //                    Vector3 vertPosition = solid.vertices[part.triangles[i]];
+            //                    if (indexMap.TryGetValue(vertPosition, out int newIndex))  // re using a vertex, use existing indices
+            //                    {
+            //                        indices[i] = newIndex;
+            //                    }
+            //                    else  // New index (vertex) is being used, add to vertices
+            //                    {
+            //                        indexMap[vertPosition] = vertices.Count;
+            //                        indices[i] = vertices.Count;
+            //                        vertices.Add(new PhysVertex { position = vertPosition });
+            //                        boundsMin = Vector3.Min(boundsMin, vertPosition);
+            //                        boundsMax = Vector3.Max(boundsMax, vertPosition);
+            //                    }
+            //                }
 
-                            // Calculate Normals
-                            // Get normal for each triangle and add to each vertex' normal
-                            // Normalize at the end
-                            for (int i = 0; i < indices.Length / 3; i++)
-                            {
-                                int index0 = indices[i * 3];
-                                int index1 = indices[i * 3 + 1];
-                                int index2 = indices[i * 3 + 2];
-                                Vector3 normal = Vector3.Cross(vertices[index1].position - vertices[index0].position, vertices[index2].position - vertices[index0].position).normalized;
-                                half4 halfNormal = new half4((half)normal.x, (half)normal.y, (half)normal.z, default);
+            //                // Calculate Normals
+            //                // Get normal for each triangle and add to each vertex' normal
+            //                // Normalize at the end
+            //                //for (int i = 0; i < indices.Length / 3; i++)
+            //                //{
+            //                //    int index0 = indices[i * 3];
+            //                //    int index1 = indices[i * 3 + 1];
+            //                //    int index2 = indices[i * 3 + 2];
+            //                //    Vector3 normal = Vector3.Cross(vertices[index1].position - vertices[index0].position, vertices[index2].position - vertices[index0].position).normalized;
+            //                //    half4 halfNormal = new half4((half)normal.x, (half)normal.y, (half)normal.z, default);
 
-                                void AddNormal(int o)
-                                {
-                                    PhysVertex vertex = vertices[o];
-                                    vertex.normal += normal;
-                                    vertices[o] = vertex;
-                                }
+            //                //    void AddNormal(int o)
+            //                //    {
+            //                //        PhysVertex vertex = vertices[o];
+            //                //        vertex.normal += normal;
+            //                //        vertices[o] = vertex;
+            //                //    }
 
-                                AddNormal(index0);
-                                AddNormal(index1);
-                                AddNormal(index2);
-                            }
-                            // Normalize normals
-                            for (int i = 0; i < vertices.Count; i++)
-                            {
-                                PhysVertex vertex = vertices[i];
-                                vertex.normal = vertex.normal.normalized;
-                                vertices[i] = vertex;
-                            }
-                            mesh.name = $"{solid.boneName}-{p}.phy";
+            //                //    AddNormal(index0);
+            //                //    AddNormal(index1);
+            //                //    AddNormal(index2);
+            //                //}
+            //                //// Normalize normals
+            //                //for (int i = 0; i < vertices.Count; i++)
+            //                //{
+            //                //    PhysVertex vertex = vertices[i];
+            //                //    vertex.normal = vertex.normal.normalized;
+            //                //    vertices[i] = vertex;
+            //                //}
+            //                mesh.name = $"{solid.boneName}-{p}.phy";
 
-                            MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontNotifyMeshUsers;
+            //                MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontNotifyMeshUsers;
 
-                            mesh.SetVertexBufferParams(vertices.Count, physVertexDescriptor);
-                            mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0, flags);
-                            mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt32);
-                            mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
-                            mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length, bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin) }, flags);
-                            mesh.bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin);
+            //                mesh.SetVertexBufferParams(vertices.Count, physVertexDescriptor);
+            //                mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0, flags);
+            //                mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt32);
+            //                mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
+            //                mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length, bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin) }, flags);
+            //                mesh.bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin);
 
-                            //mesh.Optimize();
-                            mesh.UploadMeshData(true);
+            //                //mesh.Optimize();
+            //                mesh.UploadMeshData(true);
 
-                            MeshCollider c = go.AddComponent<MeshCollider>();
-                            c.sharedMesh = mesh;
-                            c.convex = true;
-                        }
-                    }
+            //                MeshCollider c = go.AddComponent<MeshCollider>();
+            //                c.sharedMesh = mesh;
+            //                c.convex = true;
+            //            }
+            //        }
 
-                    go.AddComponent<Rigidbody>().mass = solid.mass;
-                }
-            }
+            //        go.AddComponent<Rigidbody>().mass = solid.mass;
+            //    }
+            //}
             return model;
         }
-        public static void CreateColliders(GameObject go, PhysSolid[] physSolids)
+        public static void CreateColliders(GameObject go, Formats.Source.PHYS.CollisionData[] collisionData, bool excludeLast = false)
         {
-            for (int s = 0; s < physSolids.Length; s++)
+            for (int s = 0; s < collisionData.Length; s++)
             {
-                PhysSolid solid = physSolids[s];
-                Transform transform = go.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == solid.boneName?.ToLower());
+                Formats.Source.PHYS.CollisionData collisionPart = collisionData[s];
+                Transform transform = go.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == collisionPart.boneName?.ToLower());
                 if (transform != null)
                     go = transform.gameObject;
-                for (int p = 0; p < solid.parts.Length; p++)
+
+                int maxParts = excludeLast ? collisionPart.solids.Count - 1 : collisionPart.solids.Count;
+
+                for (int p = 0; p < maxParts; p++)
                 {
-                    if (solid.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
+                    if (collisionPart.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
                     {
                         BoxCollider col = go.AddComponent<BoxCollider>();
                         col.center = boxCenter;
@@ -531,75 +532,50 @@ namespace USource.Converters
                     }
                     else  // Create mesh
                     {
-                        //continue;
-                        PhysPart part = solid.parts[p];
+                        ConvexSolid part = collisionPart.solids[p];
                         Mesh mesh = new Mesh();
+                        Dictionary<Vector3, ushort> vertexMap = new();
 
-                        Dictionary<Vector3, int> indexMap = new();
-                        List<PhysVertex> vertices = new();
-                        int[] indices = new int[part.triangles.Length];
-                        Vector3 boundsMin = Vector3.one * float.MaxValue;
-                        Vector3 boundsMax = Vector3.one * float.MinValue;
+                        ushort[] indices = new ushort[part.triangles.Length * 3];
+                        List<PhysVertex> vertices = new List<PhysVertex>();
 
-                        for (int i = 0; i < indices.Length; i++)
+                        for (int triIndex = 0; triIndex < part.triangles.Length; triIndex++)
                         {
-                            // get vertex this index corresponds to
-                            Vector3 vertPosition = solid.vertices[part.triangles[i]];
-                            if (indexMap.TryGetValue(vertPosition, out int newIndex))  // re using a vertex, use existing indices
+                            TriangleData tri = part.triangles[triIndex];
+                            void ProcessIndex(int oldIndex, int subIndex)
                             {
-                                indices[i] = newIndex;
-                            }
-                            else  // New index (vertex) is being used, add to vertices
-                            {
-                                indexMap[vertPosition] = vertices.Count;
-                                indices[i] = vertices.Count;
-                                vertices.Add(new PhysVertex { position = vertPosition });
-                                boundsMin = Vector3.Min(boundsMin, vertPosition);
-                                boundsMax = Vector3.Max(boundsMax, vertPosition);
-                            }
-                        }
+                                // Get new vertex index 
+                                Vector3 pos = collisionPart.vertices[oldIndex];
+                                if (!vertexMap.TryGetValue(pos, out ushort newIndex))
+                                {
+                                    vertexMap[pos] = (ushort)vertices.Count;
+                                    newIndex = (ushort)vertices.Count;
 
-                        // Calculate Normals
-                        // Get normal for each triangle and add to each vertex' normal
-                        // Normalize at the end
-                        for (int i = 0; i < indices.Length / 3; i++)
-                        {
-                            int index0 = indices[i * 3];
-                            int index1 = indices[i * 3 + 1];
-                            int index2 = indices[i * 3 + 2];
-                            Vector3 normal = Vector3.Cross(vertices[index1].position - vertices[index0].position, vertices[index2].position - vertices[index0].position).normalized;
-                            half4 halfNormal = new half4((half)normal.x, (half)normal.y, (half)normal.z, default);
+                                    vertices.Add(new PhysVertex { position = pos });
+                                }
 
-                            void AddNormal(int o)
-                            {
-                                PhysVertex vertex = vertices[o];
-                                vertex.normal += normal;
-                                vertices[o] = vertex;
+                                indices[triIndex * 3 + subIndex] = newIndex;
                             }
 
-                            AddNormal(index0);
-                            AddNormal(index1);
-                            AddNormal(index2);
+                            ProcessIndex(tri.v1, 0);
+                            ProcessIndex(tri.v2, 1);
+                            ProcessIndex(tri.v3, 2);
                         }
-                        // Normalize normals
-                        for (int i = 0; i < vertices.Count; i++)
-                        {
-                            PhysVertex vertex = vertices[i];
-                            vertex.normal = vertex.normal.normalized;
-                            vertices[i] = vertex;
-                        }
-                        mesh.name = $"{solid.boneName}-{p}.phy";
+
+                        mesh.name = $"{collisionPart.boneName}-{p}.phy";
 
                         MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontNotifyMeshUsers;
 
                         mesh.SetVertexBufferParams(vertices.Count, physVertexDescriptor);
                         mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0, flags);
-                        mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt32);
+                        mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt16);
                         mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
-                        mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length, bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin) }, flags);
-                        mesh.bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin);
+                        mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length }, flags = MeshUpdateFlags.DontRecalculateBounds );
 
                         //mesh.Optimize();
+                        mesh.RecalculateNormals();
+                        mesh.RecalculateTangents();
+                        mesh.RecalculateBounds();
                         mesh.UploadMeshData(true);
 
                         MeshCollider c = go.AddComponent<MeshCollider>();

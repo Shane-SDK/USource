@@ -26,8 +26,7 @@ namespace USource.SourceAsset
 
             HashSet<Location> importedLocations = new();
             UReader reader = new UReader(stream);
-            Header header = default;
-            reader.ReadType(ref header);
+            Header header = reader.ReadSourceObject<Header>(0);
             int textureCount = header.lumps[44].fileLength / 4;
             int[] indexArray = new int[textureCount];
             reader.ReadArray(ref indexArray, header.lumps[44].fileOffset);

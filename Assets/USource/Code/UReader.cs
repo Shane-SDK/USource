@@ -30,7 +30,6 @@ namespace USource
 
             return Buffer;
         }
-
         public void ReadType<T>(ref T Variable, long? Offset = null)
         {
             if (Offset.HasValue)
@@ -72,6 +71,12 @@ namespace USource
         public void ReadSourceObjectArray<T>(ref T[] array, int version = 0) where T : struct, ISourceObject
         {
             ReadArray(ref array, version);
+        }
+        public T ReadSourceObject<T>(int version = 0) where T : ISourceObject, new()
+        {
+            T instance = new();
+            instance.ReadToObject(this, version);
+            return instance;
         }
         [ThreadStatic]
         private static StringBuilder _sBuilder;

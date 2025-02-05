@@ -8,6 +8,7 @@ namespace USource.Converters
     public interface IConverter
     {
         public const float uvScaleFactor = 1.25f;
+        public const float physicsScalingFactor = 1.016f;
         public UnityEngine.Object CreateAsset(ImportContext ctx);
         public static IConverter FromLocation(Location location, System.IO.Stream assetStream)
         {
@@ -105,6 +106,10 @@ namespace USource.Converters
                 ).eulerAngles;
         }
         public static Vector3 AxisConvertSource(Vector3 sourceAxis) => new Vector3(sourceAxis.x, sourceAxis.z, sourceAxis.y);
+        public static Vector3 TransformPointSourcePhysicsToUnity(Vector3 sourcePhysics)
+        {
+            return new Vector3(-sourcePhysics.z, -sourcePhysics.y, sourcePhysics.x) / physicsScalingFactor;
+        }
     }
     public enum ImportMode
     {
