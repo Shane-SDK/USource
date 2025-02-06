@@ -27,184 +27,66 @@ namespace USource.Formats.Source.BSP
         /// <summary>disable self shadowing in vrad</summary>
         STATIC_PROP_NO_SELF_SHADOWING = 0x80
     }
-
-    /// <summary>Game lump: Static prop. V4. Size: 56 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV4_t
+    public struct StaticProp : ISourceObject
     {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public STATICPROP_FLAGS m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-    }
+        public Vector3 origin;
+        public Vector3 angles;
+        public ushort propType;
+        public ushort firstLeaf;
+        public ushort leafCount;
+        public byte solid;
+        public STATICPROP_FLAGS flags;
+        public int skin;
+        public float fadeMinDistance;
+        public float fadeMaxDistance;
+        public float forcedFadeScale;
+        public Color32 color; // per instance color and alpha modulation
+        public uint flagsExtra; // Further bitflags.
+        public float scale; // Prop scale
+        public void ReadToObject(UReader reader, int version = 0)  // version == prop version???
+        {
+            // v4 (IDFK)
+            origin = Converters.IConverter.SourceTransformPoint(reader.ReadVector3());
+            angles = Converters.IConverter.SourceTransformAngles(reader.ReadVector3());
+            propType = reader.ReadUInt16();
+            firstLeaf = reader.ReadUInt16();
+            leafCount = reader.ReadUInt16();
+            solid = reader.ReadByte();
+            flags = (STATICPROP_FLAGS)reader.ReadByte();
+            skin = reader.ReadInt32();
+            fadeMinDistance = reader.ReadSingle();
+            fadeMaxDistance = reader.ReadSingle();
+            reader.Skip(4 * 3);  // Vector3 lighting origin
 
-    /// <summary>Game lump: Static prop. V5. Size: 60 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV5_t
-    {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public STATICPROP_FLAGS m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-        public float m_flForcedFadeScale;
-        //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
-    }
+            if (version >= 5)
+            {
+                forcedFadeScale = reader.ReadSingle();
+            }
 
-    /// <summary>Game lump: Static prop. V6. Size: 64 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV6_t
-    {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public int m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-        public float m_flForcedFadeScale;
-        public ushort m_nMinDXLevel;
-        public ushort m_nMaxDXLevel;
-        //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
-    }
+            if (version >= 6)
+            {
+                reader.Skip(4);  // either two ushorts or 4 bytes for hardware settings
+            }
 
-    /// <summary>Game lump: Static prop. V7. Size: 68 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV7_t
-    {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public STATICPROP_FLAGS m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-        public float m_flForcedFadeScale;
-        public ushort m_nMinDXLevel;
-        public ushort m_nMaxDXLevel;
-        //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
-        public Color32 m_DiffuseModulation;    // per instance color and alpha modulation
-    }
+            if (version >= 7)
+            {
+                color = new Color32(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+            }
 
-    /// <summary>Game lump: Static prop. V8. Size: 68 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV8_t
-    {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public STATICPROP_FLAGS m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-        public float m_flForcedFadeScale;
-        public byte m_nMinCPULevel;
-        public byte m_nMaxCPULevel;
-        public byte m_nMinGPULevel;
-        public byte m_nMaxGPULevel;
-        //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
-        public Color32 m_DiffuseModulation;    // per instance color and alpha modulation
-    }
+            if (version >= 9)
+            {
+                reader.Skip(4);  // int32 xbox flag
+            }
 
-    /// <summary>Game lump: Static prop. V9. Size: 72 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV9_t
-    {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public STATICPROP_FLAGS m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-        public float m_flForcedFadeScale;
-        public byte m_nMinCPULevel;
-        public byte m_nMaxCPULevel;
-        public byte m_nMinGPULevel;
-        public byte m_nMaxGPULevel;
-        //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
-        public Color32 m_DiffuseModulation;    // per instance color and alpha modulation
-        public bool m_bDisableX360; // if true, don't show on XBox 360 (4-bytes long)
-    }
+            if (version >= 10)
+            {
+                flagsExtra = reader.ReadUInt32();
+            }
 
-    /// <summary>Game lump: Static prop. V10. Size: 76 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV10_t
-    {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public STATICPROP_FLAGS m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-        public float m_flForcedFadeScale;
-        public byte m_nMinCPULevel;
-        public byte m_nMaxCPULevel;
-        public byte m_nMinGPULevel;
-        public byte m_nMaxGPULevel;
-        //	int				m_Lighting;			// index into the GAMELUMP_STATIC_PROP_LIGHTING lump
-        public Color32 m_DiffuseModulation;    // per instance color and alpha modulation
-        public bool m_bDisableX360; // if true, don't show on XBox 360 (4-bytes long)
-        public uint m_FlagsEx; // Further bitflags.
-    }
-
-    /// <summary>Game lump: Static prop. V11. Size: 80 bytes</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StaticPropLumpV11_t
-    {
-        public Vector3 m_Origin;
-        public Vector3 m_Angles;
-        public ushort m_PropType;
-        public ushort m_FirstLeaf;
-        public ushort m_LeafCount;
-        public byte m_Solid;
-        public byte m_Flags;
-        public int m_Skin;
-        public float m_FadeMinDist;
-        public float m_FadeMaxDist;
-        public Vector3 m_LightingOrigin;
-        public float m_ForcedFadeScale;
-        public byte m_MinCPULevel;
-        public byte m_MaxCPULevel;
-        public byte m_MinGPULevel;
-        public byte m_MaxGPULevel;
-        public Color32 m_DiffuseModulation; // per instance color and alpha modulation
-        public bool m_DisableX360; // if true, don't show on XBox 360 (4-bytes long)
-        public uint m_FlagsEx; // Further bitflags.
-        public float m_UniformScale; // Prop scale
+            if (version >= 11)
+            {
+                scale = reader.ReadSingle();
+            }
+        }
     }
 }

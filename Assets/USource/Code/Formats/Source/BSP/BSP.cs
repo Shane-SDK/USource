@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using Unity.VisualScripting.YamlDotNet.Core;
 using UnityEngine;
 using USource.Formats.Source.PHYS;
 using USource.SourceAsset;
@@ -34,7 +33,7 @@ namespace USource.Formats.Source.BSP
         public Plane[] planes;
         public string[] staticPropDict;
         public ushort[] staticPropLeafEntries;
-        public StaticPropLump_t[] staticPropLumps;
+        public StaticProp[] staticPropLumps;
         public LeafAmbientIndex[] ldrAmbientIndices;
         public LeafAmbientLighting[] ldrAmbientLighting;
         public List<PhysicsBrushModel> physModelHeaders;
@@ -95,8 +94,8 @@ namespace USource.Formats.Source.BSP
 
             textureStringData = new String[header.lumps[44].fileLength / 4];
 
-            int[] BSP_TextureStringTable = new Int32[header.lumps[44].fileLength / 4];
-            reader.ReadArray(ref BSP_TextureStringTable, header.lumps[44].fileOffset);
+            reader.BaseStream.Position = header.lumps[44].fileOffset;
+            int[] BSP_TextureStringTable = reader.ReadIntArray(header.lumps[44].fileLength / 4);
 
             //if (ULoader.ModFolders[0] == "tf")
             //    return file;
@@ -122,10 +121,10 @@ namespace USource.Formats.Source.BSP
             vertices = new Vector3[header.lumps[3].fileLength / 12];
 
             for (Int32 i = 0; i < vertices.Length; i++)
-                vertices[i] = reader.ReadVector3D(true) * USource.settings.sourceToUnityScale;
+                vertices[i] = Converters.IConverter.SourceTransformPoint(reader.ReadVector3());
 
-            surfEdges = new int[header.lumps[13].fileLength / 4];
-            reader.ReadArray(ref surfEdges, header.lumps[13].fileOffset);
+            reader.BaseStream.Position = header.lumps[13].fileOffset;
+            surfEdges = reader.ReadIntArray(header.lumps[13].fileLength / 4);
 
             entities = new();
             reader.BaseStream.Seek(header.lumps[0].fileOffset, SeekOrigin.Begin);
@@ -171,14 +170,14 @@ namespace USource.Formats.Source.BSP
             leafs = new Leaf[header.lumps[10].fileLength / 32];
             reader.ReadSourceObjectArray(ref leafs, header.lumps[10].fileOffset, Version);
 
-            leafFaces = new ushort[header.lumps[16].fileLength / 2];
-            reader.ReadArray(ref leafFaces, header.lumps[16].fileOffset);
+            reader.BaseStream.Position = header.lumps[16].fileOffset;
+            leafFaces = reader.ReadUshortArray(header.lumps[16].fileLength / 2);
 
             reader.BaseStream.Seek(header.lumps[35].fileOffset, SeekOrigin.Begin);
             gameLumps = new GameLumpHeader[reader.ReadInt32()];
             reader.ReadSourceObjectArray(ref gameLumps, header.lumps[35].fileOffset + 4, Version);
 
-            staticPropLumps = new StaticPropLump_t[0];
+            staticPropLumps = new StaticProp[0];
             for (int i = 0; i < gameLumps.Length; i++)
             {
                 if (gameLumps[i].id == 1936749168)  // Static prop dictionary
@@ -193,53 +192,18 @@ namespace USource.Formats.Source.BSP
                             staticPropDict[j] = staticPropDict[j].Split('\0')[0];
                     }
 
-                    staticPropLeafEntries = new ushort[reader.ReadInt32()];
-                    reader.ReadArray(ref staticPropLeafEntries);
+                    staticPropLeafEntries = reader.ReadUshortArray(reader.ReadInt32());
 
                     long nStaticProps = reader.ReadInt32();
                     if (nStaticProps == 0) continue;
-                    staticPropLumps = new StaticPropLump_t[nStaticProps];
+                    staticPropLumps = new StaticProp[nStaticProps];
                     long staticPropSize = (gameLumps[i].fileLength - (reader.BaseStream.Position - gameLumps[i].fileOffset)) / nStaticProps;
                     long staticPropLumpStart = reader.BaseStream.Position;
 
                     for (long l = 0; l < nStaticProps; l++)
                     {
-                        ushort pathIndex;
-                        Vector3 m_Origin;
-                        Vector3 m_Angles;
-
                         reader.BaseStream.Position = staticPropLumpStart + l * staticPropSize;
-                        switch (gameLumps[i].version)
-                        {
-                            case 11:
-                                StaticPropLumpV11_t StaticPropLumpV11_t = new StaticPropLumpV11_t();
-                                reader.ReadType(ref StaticPropLumpV11_t);
-
-                                pathIndex = StaticPropLumpV11_t.m_PropType;
-                                m_Origin = Converters.IConverter.SourceTransformPointHammer(StaticPropLumpV11_t.m_Origin);
-                                m_Angles = Converters.IConverter.SourceTransformAnglesHammer(StaticPropLumpV11_t.m_Angles);
-
-                                break;
-                            case 600:
-                                StaticPropLumpV6_t propLump = new StaticPropLumpV6_t();
-                                reader.ReadType(ref propLump);
-
-                                pathIndex = propLump.m_PropType;
-                                m_Origin = Converters.IConverter.SourceTransformPointHammer(propLump.m_Origin);
-                                m_Angles = Converters.IConverter.SourceTransformAnglesHammer(propLump.m_Angles);
-
-                                break;
-                            default:
-                                StaticPropLumpV4_t StaticPropLumpV4_t = new StaticPropLumpV4_t();
-                                reader.ReadType(ref StaticPropLumpV4_t);
-
-                                pathIndex = StaticPropLumpV4_t.m_PropType;
-                                m_Origin = Converters.IConverter.SourceTransformPointHammer(StaticPropLumpV4_t.m_Origin);
-                                m_Angles = Converters.IConverter.SourceTransformAnglesHammer(StaticPropLumpV4_t.m_Angles);
-                                break;
-                        }
-
-                        staticPropLumps[l] = new StaticPropLump_t { Angles = m_Angles, Origin = m_Origin, PropType = pathIndex };
+                        staticPropLumps[l] = reader.ReadSourceObject<StaticProp>(gameLumps[i].version);
                     }
                 }
             }
@@ -260,12 +224,12 @@ namespace USource.Formats.Source.BSP
                 //Debug.Log($"BSP Phys Model {iteration - 1}, {reader.BaseStream.Position.ToString("X")}");
 
                 long currentPos = reader.BaseStream.Position;
-                CollisionData[] solids = new CollisionData[modelHeader.solidCount];
+                Solid[] solids = new Solid[modelHeader.solidCount];
                 physModels[modelHeader.modelIndex] = new PhysModel { solids = solids, modelIndex = modelHeader.modelIndex };
                 for (int i = 0; i < modelHeader.solidCount; i++)
                 {
                     //Debug.Log($"Collision Data {i}, {reader.BaseStream.Position.ToString("X")}");
-                    solids[i] = new PHYS.CollisionData(modelHeader.dataSize);
+                    solids[i] = new PHYS.Solid();
                     solids[i].ReadToObject(reader);
                 }
 
@@ -294,13 +258,10 @@ namespace USource.Formats.Source.BSP
     public class BspEntity
     {
         public Dictionary<string, string> values = new();
-        public bool TryGetTransformedVector3(string key, out Vector3 unityPosition)
+        public bool TryGetVector3(string key, out Vector3 unityPosition)
         {
             if (values.TryGetValue(key, out string posString) && Conversions.TryParseVector3(posString, out unityPosition))
-            {
-                unityPosition = Converters.IConverter.SourceTransformPointHammer(unityPosition);
                 return true;
-            }
 
             unityPosition = default;
             return false;
@@ -328,6 +289,6 @@ namespace USource.Formats.Source.BSP
     public class PhysModel
     {
         public int modelIndex;
-        public CollisionData[] solids;
+        public Solid[] solids;
     }
 }

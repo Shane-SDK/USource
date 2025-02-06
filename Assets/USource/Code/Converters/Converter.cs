@@ -70,18 +70,9 @@ namespace USource.Converters
 
             return converter;
         }
-        /// <summary>
-        /// Transforms a point from Source to Unity coordinates
-        /// </summary>
-        /// <param name="c"></param>
-        /// <returns></returns>
         public static Vector3 SourceTransformPoint(Vector3 c)
         {
-            return USource.settings.sourceToUnityScale * new Vector3(-c.x, c.z, -c.y);
-        }
-        public static Vector3 SourceTransformPointHammer(Vector3 c)
-        {
-            return USource.settings.sourceToUnityScale * new Vector3(-c.y, c.z, c.x);
+            return USource.settings.sourceToUnityScale * new Vector3(c.x, c.z, c.y);
         }
         public static Vector3 SourceTransformDirection(Vector3 c)
         {
@@ -92,23 +83,27 @@ namespace USource.Converters
             //sourceAngles = AxisConvertSource(sourceAngles);
             return (
                 Quaternion.AngleAxis(-sourceAngles[1], Vector3.up) *
-                Quaternion.AngleAxis(sourceAngles[0], Vector3.forward) *
-                Quaternion.AngleAxis(sourceAngles[2], Vector3.right)
-                ).eulerAngles;
-        }
-        public static Vector3 SourceTransformAnglesHammer(Vector3 sourceAngles)
-        {
-            //sourceAngles = AxisConvertSource(sourceAngles);
-            return (
-                Quaternion.AngleAxis(-sourceAngles[1] + 90, Vector3.up) *
-                Quaternion.AngleAxis(sourceAngles[0], Vector3.forward) *
-                Quaternion.AngleAxis(sourceAngles[2], Vector3.right)
+                Quaternion.AngleAxis(-sourceAngles[0], Vector3.forward) *
+                Quaternion.AngleAxis(-sourceAngles[2], Vector3.right)
                 ).eulerAngles;
         }
         public static Vector3 AxisConvertSource(Vector3 sourceAxis) => new Vector3(sourceAxis.x, sourceAxis.z, sourceAxis.y);
         public static Vector3 TransformPointSourcePhysicsToUnity(Vector3 sourcePhysics)
         {
-            return new Vector3(-sourcePhysics.z, -sourcePhysics.y, sourcePhysics.x) / physicsScalingFactor;
+            return new Vector3(sourcePhysics.x, -sourcePhysics.y, sourcePhysics.z) / physicsScalingFactor;
+        }
+        public static string ByteArrayToString(byte[] bytes)
+        {
+            int nullIndex = -1;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                if (((char)bytes[i]) == '\0')
+                {
+                    nullIndex = i;
+                    break;
+                }
+            }
+            return System.Text.Encoding.ASCII.GetString(bytes, 0, nullIndex);
         }
     }
     public enum ImportMode

@@ -4,17 +4,11 @@ using UnityEngine;
 
 namespace USource.MathLib
 {
-	[StructLayout(LayoutKind.Explicit)]
 	public struct IntegerAndSingleUnion
 	{
-		[FieldOffset(0)]
 		public Int32 i;
-		[FieldOffset(0)]
 		public Single s;
 	}
-
-	[Serializable]
-	[StructLayout(LayoutKind.Sequential, Pack = 1)]
 	public struct Float16
 	{
 		public Single GetFloat
@@ -119,9 +113,6 @@ namespace USource.MathLib
 
 		public UInt16 bits;
 	}
-
-	[Serializable]
-	[StructLayout(LayoutKind.Sequential, Pack = 1)]
 	public struct Vector48
 	{
 		public Float16 x;
@@ -143,9 +134,6 @@ namespace USource.MathLib
 			return obj.ToVector3();
 		}
 	}
-
-	[Serializable]
-	[StructLayout(LayoutKind.Sequential, Pack = 1)]
 	public struct Quaternion48
 	{
 		public UInt16 theXInput;
@@ -216,12 +204,8 @@ namespace USource.MathLib
 			}
 		}
 	}
-
-	[Serializable]
-	[StructLayout(LayoutKind.Sequential, Pack = 1)]
 	public struct Quaternion64
 	{
-		[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 8)]
 		public Byte[] theBytes;
 
 		public Single x

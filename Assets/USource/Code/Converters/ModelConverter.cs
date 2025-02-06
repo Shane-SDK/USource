@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
-using static USource.Formats.Source.MDL.StudioStruct;
 using USource.Formats.Source.MDL;
 using USource.MathLib;
 using System.IO;
@@ -30,6 +29,7 @@ namespace USource.Converters
             new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
             new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
             new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2, 1),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float32, 2, 2),
         };
         public readonly static VertexAttributeDescriptor[] skinnedVertexDescriptor = new VertexAttributeDescriptor[]
         {
@@ -54,7 +54,7 @@ namespace USource.Converters
 
             if (vvdStream != null && vtxStream != null)
             {
-                new VTXFile(vtxStream, mdl, new VVDFile(vvdStream, mdl));
+                new Formats.Source.VTX.VTXFile(vtxStream, mdl, new Formats.Source.VVD.VVDFile(vvdStream, mdl));
             }
 
             this.importOptions = importOptions;
@@ -63,7 +63,7 @@ namespace USource.Converters
         {
             bool isStatic = mdl.MDL_Header.flags.HasFlag(StudioHDRFlags.STUDIOHDR_FLAGS_STATIC_PROP);
 
-            GameObject model = new GameObject(mdl.MDL_Header.Name);
+            GameObject model = new GameObject(mdl.MDL_Header.name);
             model.hideFlags = HideFlags.HideAndDontSave;
 
             Transform[] Bones = new Transform[mdl.MDL_Header.bone_count];
@@ -119,7 +119,7 @@ namespace USource.Converters
                 {
                     for (Int32 hitboxID = 0; hitboxID < mdl.MDL_Hitboxsets[hitboxsetID].numhitboxes; hitboxID++)
                     {
-                        mstudiobbox_t hitbox = mdl.Hitboxes[hitboxsetID][hitboxID].BBox;
+                        StudioBBox hitbox = mdl.Hitboxes[hitboxsetID][hitboxID].BBox;
                         BoxCollider bbox = new GameObject(String.Format("Hitbox_{0}", Bones[hitbox.bone].name)).AddComponent<BoxCollider>();
 
                         bbox.size = MathLibrary.NegateX(hitbox.bbmax - hitbox.bbmin) * USource.settings.sourceToUnityScale;
@@ -154,18 +154,18 @@ namespace USource.Converters
 
                     int modelID = 0;
 
-                    StudioModel Model = BodyPart.Models[modelID];
+                    Model Model = BodyPart.Models[modelID];
 
                     //Skip if model is blank
                     if (Model.isBlank)
                         continue;
 
-                    mstudiovertex_t[] Vertexes = Model.VerticesPerLod[0];
+                    StudioVertex[] Vertexes = Model.VerticesPerLod[0];
 
                     for (Int32 i = 0; i < Vertexes.Length; i++)
                     {
-                        Vector3 position = IConverter.SourceTransformPoint(Vertexes[i].m_vecPosition);
-                        Vector3 normal = IConverter.SourceTransformDirection(Vertexes[i].m_vecNormal);
+                        Vector3 position = Vertexes[i].m_vecPosition;
+                        Vector3 normal = Vertexes[i].m_vecNormal;
                         Vector2 uv = Vertexes[i].m_vecTexCoord;
 
                         vertices.Add(new Vertex
@@ -196,7 +196,7 @@ namespace USource.Converters
                         }
                     }
 
-                    for (Int32 meshID = 0; meshID < Model.Model.nummeshes; meshID++)  // For each material slot
+                    for (Int32 meshID = 0; meshID < Model.model.nummeshes; meshID++)  // For each material slot
                     {
                         // Get the appropriate submesh
                         int submeshIndex = Model.Meshes[meshID].material;
@@ -228,13 +228,13 @@ namespace USource.Converters
                 }
 
                 Mesh mesh = new Mesh();
-                mesh.name = mdl.MDL_Header.Name;
+                mesh.name = mdl.MDL_Header.name;
                 mesh.subMeshCount = submeshes.Count;
                 SubMeshDescriptor[] subMeshDescriptors = new SubMeshDescriptor[submeshes.Count];
 
                 mesh.SetVertexBufferParams(vertices.Count, hasArmature ? skinnedVertexDescriptor : staticVertexDescriptor);
-                mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0);
-                mesh.SetVertexBufferData(uvs, 0, 0, uvs.Count, 1);
+                mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0,  (MeshUpdateFlags)(int.MaxValue));
+                mesh.SetVertexBufferData(uvs, 0, 0, uvs.Count, 1, (MeshUpdateFlags)(int.MaxValue));
 
                 if (hasArmature)
                     mesh.SetVertexBufferData(skinnedData, 0, 0, skinnedData.Count, 2);
@@ -261,9 +261,9 @@ namespace USource.Converters
 
                 mesh.SetIndexBufferParams(indices.Count, indexFormat);
                 if (indexFormat == IndexFormat.UInt16)
-                    mesh.SetIndexBufferData(indices as List<ushort>, 0, 0, indices.Count);
+                    mesh.SetIndexBufferData(indices as List<ushort>, 0, 0, indices.Count, (MeshUpdateFlags)(int.MaxValue));
                 else
-                    mesh.SetIndexBufferData(indices as List<uint>, 0, 0, indices.Count);
+                    mesh.SetIndexBufferData(indices as List<uint>, 0, 0, indices.Count, (MeshUpdateFlags)(int.MaxValue));
 
                 mesh.SetSubMeshes(subMeshDescriptors);
 
@@ -299,6 +299,8 @@ namespace USource.Converters
                 UnityEditor.Unwrapping.GenerateSecondaryUVSet(mesh);
 #endif
                 mesh.RecalculateBounds();
+                mesh.RecalculateNormals();
+                mesh.RecalculateTangents();
                 mesh.Optimize();
                 mesh.UploadMeshData(true);
                 renderer.sharedMaterials = materials.ToArray();
@@ -413,114 +415,24 @@ namespace USource.Converters
                 }
             }
 
-            //if (importOptions.HasFlag(ImportOptions.Physics) && mdl.HasPhysics)
-            //{
-            //    for (int s = 0; s < mdl.physSolids.Length; s++)
-            //    {
-            //        PhysSolid solid = mdl.physSolids[s];
-            //        GameObject go = model;
-            //        Transform transform = model.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == solid.boneName.ToLower());
-            //        if (transform != null)
-            //            go = transform.gameObject;
-            //        for (int p = 0; p < solid.parts.Length; p++)
-            //        {
-            //            if (solid.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
-            //            {
-            //                BoxCollider col = go.AddComponent<BoxCollider>();
-            //                col.center = boxCenter;
-            //                col.size = boxSize;
-            //            }
-            //            else  // Create mesh
-            //            {
-            //                PhysPart part = solid.parts[p];
-            //                Mesh mesh = new Mesh();
+            if (importOptions.HasFlag(ImportOptions.Physics) && mdl.HasPhysics)
+            {
+                CreateColliders(model, mdl.phys.solids, true);
+            }
 
-            //                int[] indices = new int[part.triangles.Length];
-            //                Vector3 boundsMin = Vector3.one * float.MaxValue;
-            //                Vector3 boundsMax = Vector3.one * float.MinValue;
-
-            //                for (int i = 0; i < indices.Length; i++)
-            //                {
-            //                    // get vertex this index corresponds to
-            //                    Vector3 vertPosition = solid.vertices[part.triangles[i]];
-            //                    if (indexMap.TryGetValue(vertPosition, out int newIndex))  // re using a vertex, use existing indices
-            //                    {
-            //                        indices[i] = newIndex;
-            //                    }
-            //                    else  // New index (vertex) is being used, add to vertices
-            //                    {
-            //                        indexMap[vertPosition] = vertices.Count;
-            //                        indices[i] = vertices.Count;
-            //                        vertices.Add(new PhysVertex { position = vertPosition });
-            //                        boundsMin = Vector3.Min(boundsMin, vertPosition);
-            //                        boundsMax = Vector3.Max(boundsMax, vertPosition);
-            //                    }
-            //                }
-
-            //                // Calculate Normals
-            //                // Get normal for each triangle and add to each vertex' normal
-            //                // Normalize at the end
-            //                //for (int i = 0; i < indices.Length / 3; i++)
-            //                //{
-            //                //    int index0 = indices[i * 3];
-            //                //    int index1 = indices[i * 3 + 1];
-            //                //    int index2 = indices[i * 3 + 2];
-            //                //    Vector3 normal = Vector3.Cross(vertices[index1].position - vertices[index0].position, vertices[index2].position - vertices[index0].position).normalized;
-            //                //    half4 halfNormal = new half4((half)normal.x, (half)normal.y, (half)normal.z, default);
-
-            //                //    void AddNormal(int o)
-            //                //    {
-            //                //        PhysVertex vertex = vertices[o];
-            //                //        vertex.normal += normal;
-            //                //        vertices[o] = vertex;
-            //                //    }
-
-            //                //    AddNormal(index0);
-            //                //    AddNormal(index1);
-            //                //    AddNormal(index2);
-            //                //}
-            //                //// Normalize normals
-            //                //for (int i = 0; i < vertices.Count; i++)
-            //                //{
-            //                //    PhysVertex vertex = vertices[i];
-            //                //    vertex.normal = vertex.normal.normalized;
-            //                //    vertices[i] = vertex;
-            //                //}
-            //                mesh.name = $"{solid.boneName}-{p}.phy";
-
-            //                MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontNotifyMeshUsers;
-
-            //                mesh.SetVertexBufferParams(vertices.Count, physVertexDescriptor);
-            //                mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0, flags);
-            //                mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt32);
-            //                mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
-            //                mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length, bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin) }, flags);
-            //                mesh.bounds = new Bounds((boundsMin + boundsMax) / 2, boundsMax - boundsMin);
-
-            //                //mesh.Optimize();
-            //                mesh.UploadMeshData(true);
-
-            //                MeshCollider c = go.AddComponent<MeshCollider>();
-            //                c.sharedMesh = mesh;
-            //                c.convex = true;
-            //            }
-            //        }
-
-            //        go.AddComponent<Rigidbody>().mass = solid.mass;
-            //    }
-            //}
             return model;
         }
-        public static void CreateColliders(GameObject go, Formats.Source.PHYS.CollisionData[] collisionData, bool excludeLast = false)
+        public static void CreateColliders(GameObject go, IList<Solid> collisionData, bool excludeConcave = false)
         {
-            for (int s = 0; s < collisionData.Length; s++)
+            for (int s = 0; s < collisionData.Count; s++)
             {
-                Formats.Source.PHYS.CollisionData collisionPart = collisionData[s];
+                Formats.Source.PHYS.Solid collisionPart = collisionData[s];
+
                 Transform transform = go.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == collisionPart.boneName?.ToLower());
                 if (transform != null)
                     go = transform.gameObject;
 
-                int maxParts = excludeLast ? collisionPart.solids.Count - 1 : collisionPart.solids.Count;
+                int maxParts = (excludeConcave && collisionPart.solids.Count > 1) ? collisionPart.solids.Count - 1 : collisionPart.solids.Count;
 
                 for (int p = 0; p < maxParts; p++)
                 {

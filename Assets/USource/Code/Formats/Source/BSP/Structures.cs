@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System;
 using Unity.Mathematics;
 using USource.Converters;
+using System.Collections.Generic;
 
 namespace USource.Formats.Source.BSP
 {
@@ -41,6 +42,8 @@ namespace USource.Formats.Source.BSP
             fileLength = reader.ReadInt32();
             this.version = reader.ReadInt32();
             code = reader.ReadInt32();
+
+
         }
     }
     public struct Edge : ISourceObject
@@ -156,10 +159,10 @@ namespace USource.Formats.Source.BSP
 
         public void ReadToObject(UReader reader, int version = 0)
         {
-            min = reader.ReadVector3D(true);
-            max = reader.ReadVector3D(true);
+            min = reader.ReadVector3();
+            max = reader.ReadVector3();
 
-            origin = reader.ReadVector3D(true);
+            origin = reader.ReadVector3();
 
             headNode = reader.ReadInt32();
             firstFace = reader.ReadInt32();
@@ -198,14 +201,13 @@ namespace USource.Formats.Source.BSP
             id = reader.ReadInt32();
             textureInfo = reader.ReadInt16();
             faceCountRenderOrder = reader.ReadUInt16();
-            faces = new int[64];
-            reader.ReadArray(ref faces);
-            u = reader.ReadVector2D();
-            v = reader.ReadVector2D();
+            faces = reader.ReadIntArray(64);
+            u = reader.ReadVector2();
+            v = reader.ReadVector2();
             uvPoints = new Vector3[4];
-            reader.ReadArray(ref uvPoints);
-            origin = reader.ReadVector3D(false);
-            normal = reader.ReadVector3D(false);
+            reader.ReadVector3Array(uvPoints);
+            origin = reader.ReadVector3();
+            normal = reader.ReadVector3();
         }
     }
     public struct GameLumpHeader : ISourceObject
@@ -239,7 +241,7 @@ namespace USource.Formats.Source.BSP
         public int lightMapStart; // Index into LUMP_DISP_LIGHTMAP_SAMPLE_POSITIONS.
         public void ReadToObject(UReader reader, int version = 0)
         {
-            startPosition = reader.ReadVector3D(false);
+            startPosition = reader.ReadVector3();
             displacementVertexStart = reader.ReadInt32();
             displacementTriangleStart = reader.ReadInt32();
             power = reader.ReadInt32();
@@ -262,7 +264,7 @@ namespace USource.Formats.Source.BSP
 
         public void ReadToObject(UReader reader, int version = 0)
         {
-            displacement = reader.ReadVector3D(false);
+            displacement = reader.ReadVector3();
             distance = reader.ReadSingle();
             alpha = reader.ReadSingle();
         }
@@ -284,14 +286,14 @@ namespace USource.Formats.Source.BSP
 
         public Vector3 TransformMin()
         {
-            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPoint(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPoint(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Min(min.x, max.x), Mathf.Min(min.y, max.y), Mathf.Min(min.z, max.z));
         }
         public Vector3 TransformMax()
         {
-            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPoint(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPoint(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Max(min.x, max.x), Mathf.Max(min.y, max.y), Mathf.Max(min.z, max.z));
         }
         public bool Contains(Vector3 c, float tolerance = 0.01f)
@@ -343,14 +345,14 @@ namespace USource.Formats.Source.BSP
 
         public Vector3 TransformMin()
         {
-            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPoint(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPoint(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Min(min.x, max.x), Mathf.Min(min.y, max.y), Mathf.Min(min.z, max.z));
         }
         public Vector3 TransformMax()
         {
-            Vector3 min = IConverter.SourceTransformPointHammer(new Vector3(minX, minY, minZ));
-            Vector3 max = IConverter.SourceTransformPointHammer(new Vector3(maxX, maxY, maxZ));
+            Vector3 min = IConverter.SourceTransformPoint(new Vector3(minX, minY, minZ));
+            Vector3 max = IConverter.SourceTransformPoint(new Vector3(maxX, maxY, maxZ));
             return new Vector3(Mathf.Max(min.x, max.x), Mathf.Max(min.y, max.y), Mathf.Max(min.z, max.z));
         }
         public bool Contains(Vector3 c)
@@ -385,33 +387,6 @@ namespace USource.Formats.Source.BSP
             padding = reader.ReadInt16();
         }
     }
-    public struct StaticPropLump_t
-    {
-        public Vector3 Origin;            // origin
-        public Vector3 Angles;            // orientation (pitch yaw roll)
-        public ushort PropType;          // index into model name dictionary
-        public ushort FirstLeaf;         // index into leaf array
-        public ushort LeafCount;
-        public byte Solid;             // solidity type
-        public int Skin;              // model skin numbers
-        public float FadeMinDist;
-        public float FadeMaxDist;
-        public Vector3 LightingOrigin;    // for lighting
-        public float ForcedFadeScale;   // fade distance scale
-        public ushort MinDXLevel;        // minimum DirectX version to be visible
-        public ushort MaxDXLevel;        // maximum DirectX version to be visible
-        public uint Flags;
-        public ushort LightmapResX;      // lightmap image width
-        public ushort LightmapResY;      // lightmap image height
-        public byte MinCPULevel;
-        public byte MaxCPULevel;
-        public byte MinGPULevel;
-        public byte MaxGPULevel;
-        public Color32 DiffuseModulation; // per instance color and alpha modulation
-        public bool DisableX360;       // if true, don't show on XBox 360 (4-bytes long)
-        public uint FlagsEx;           // Further bitflags.
-        public float UniformScale;      // Prop scale
-    };
     public struct Plane : ISourceObject
     {
         public Vector3 normal;
@@ -420,7 +395,7 @@ namespace USource.Formats.Source.BSP
 
         public void ReadToObject(UReader reader, int version = 0)
         {
-            normal = reader.ReadVector3D();
+            normal = reader.ReadVector3();
             distance = reader.ReadSingle();
             type = reader.ReadInt32();
         }

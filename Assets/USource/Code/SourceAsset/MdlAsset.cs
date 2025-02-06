@@ -1,6 +1,6 @@
 ﻿using System.IO;
-using static USource.Formats.Source.MDL.StudioStruct;
 using USource.Converters;
+using USource.Formats.Source.MDL;
 
 namespace USource.SourceAsset
 {
@@ -21,10 +21,10 @@ namespace USource.SourceAsset
             tree.Add(new Location(location.SourcePath.Replace(".mdl", ".phy"), Location.Type.Source, location.ResourceProvider));
             stream.Position = 0;
             UReader reader = new UReader(stream);
-            studiohdr_t header = default;
+            StudioHeader header = default;
             reader.ReadType(ref header);
 
-            mstudiotexture_t[] textures = new mstudiotexture_t[header.texture_count];
+            StudioTexture[] textures = new StudioTexture[header.texture_count];
             string[] textureNames = new string[header.texture_count];
             for (int texID = 0; texID < header.texture_count; texID++)
             {
@@ -37,7 +37,8 @@ namespace USource.SourceAsset
             string[] directoryNames = new string[header.texturedir_count];
             for (int dirID = 0; dirID < header.texturedir_count; dirID++)
             {
-                reader.ReadType(ref TDirOffsets[dirID], header.texturedir_offset + 4 * dirID);
+                reader.BaseStream.Position = header.texturedir_offset + 4 * dirID;
+                TDirOffsets[dirID] = reader.ReadInt32();
                 directoryNames[dirID] = reader.ReadNullTerminatedString(TDirOffsets[dirID]).Replace("\\", "/");
             }
 

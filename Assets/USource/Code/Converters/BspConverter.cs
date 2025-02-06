@@ -43,7 +43,7 @@ namespace USource.Converters
 
             Dictionary<int, GameObject> bModelMap = new();
 
-            if (importOptions.cullSkybox && skyCamera != null && skyCamera.TryGetTransformedVector3("origin", out Vector3 cameraPosition))
+            if (importOptions.cullSkybox && skyCamera != null && skyCamera.TryGetVector3("origin", out Vector3 cameraPosition))
             {
                 Leaf skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(cameraPosition));
                 skyLeafCluster = skyBoxLeaf.cluster;
@@ -188,9 +188,9 @@ namespace USource.Converters
             for (int i = 0; i < bspFile.staticPropLumps.Length; i++)
             {
                 if (skyLeafs.Contains(bspFile.staticPropLeafEntries[i])) continue;  // skip props in the skybox
-                StaticPropLump_t lump = bspFile.staticPropLumps[i];
+                StaticProp lump = bspFile.staticPropLumps[i];
 
-                if (USource.ResourceManager.GetUnityObject(new Location(bspFile.staticPropDict[lump.PropType], Location.Type.Source), out GameObject prefab, ctx.ImportMode, true))
+                if (USource.ResourceManager.GetUnityObject(new Location(bspFile.staticPropDict[lump.propType], Location.Type.Source), out GameObject prefab, ctx.ImportMode, true))
                 {
                     GameObject instance;
 #if UNITY_EDITOR
@@ -202,8 +202,8 @@ namespace USource.Converters
 
                     instance.name = $"[{i}] {instance.name}";
                     instance.isStatic = true;
-                    instance.transform.position = lump.Origin;
-                    instance.transform.rotation = Quaternion.Euler(lump.Angles);
+                    instance.transform.position = lump.origin;
+                    instance.transform.rotation = Quaternion.Euler(lump.angles);
                     instance.transform.parent = staticPropsGO.transform;
                 }
             }
@@ -215,8 +215,12 @@ namespace USource.Converters
 
                 entity.TryGetValue("classname", out string className);
                 if (className == null) continue;
-                entity.TryGetTransformedVector3("origin", out Vector3 position);
-                entity.TryGetTransformedVector3("angles", out Vector3 angles);
+                entity.TryGetVector3("origin", out Vector3 position);
+                entity.TryGetVector3("angles", out Vector3 angles);
+
+                position = IConverter.SourceTransformPoint(position);
+                angles = IConverter.SourceTransformAngles(angles);
+
                 if (entity.TryGetFloat("pitch", out float pitch))
                 {
                     angles.x = -pitch;
@@ -470,7 +474,7 @@ namespace USource.Converters
                     }
 
                     // Vertices
-                    Vector3 basePosition = IConverter.SourceTransformPointHammer(dispInfo.startPosition);
+                    Vector3 basePosition = IConverter.SourceTransformPoint(dispInfo.startPosition);
                     // determine the closest vertex on the face
                     Vector3[] faceVertices = new Vector3[4];
                     int minimumVertexIndex = -1;
@@ -553,8 +557,9 @@ namespace USource.Converters
 
                         WorldVertex vertex = new();
                         vertex.position = EnsureFinite(bsp.vertices[edgeIndex]);
-                        float TextureUVS = (Vector3.Dot(vertex.position, tS) + textureInfo.textureVecs0.w * USource.settings.sourceToUnityScale) / (textureData.viewWidth * USource.settings.sourceToUnityScale);
-                        float TextureUVT = -(Vector3.Dot(vertex.position, tT) + textureInfo.textureVecs1.w * USource.settings.sourceToUnityScale) / (textureData.viewHeight * USource.settings.sourceToUnityScale);
+                        Vector3 crossVertexPostiion = new Vector3(-vertex.position.z, vertex.position.y, vertex.position.x);
+                        float TextureUVS = (Vector3.Dot(crossVertexPostiion, tS) + textureInfo.textureVecs0.w * USource.settings.sourceToUnityScale) / (textureData.viewWidth * USource.settings.sourceToUnityScale);
+                        float TextureUVT = -(Vector3.Dot(crossVertexPostiion, tT) + textureInfo.textureVecs1.w * USource.settings.sourceToUnityScale) / (textureData.viewHeight * USource.settings.sourceToUnityScale);
                         vertex.uv = new half2(EnsureFinite(new Vector2(TextureUVS, TextureUVT)));
 
                         vertices.Add(vertex);

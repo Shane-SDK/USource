@@ -48,7 +48,7 @@ namespace USource.Formats.Source.VTF
 
                 FileStream.ReadBytes(4); // padding
 
-                Header.Reflectivity = FileStream.ReadVector3D(false);
+                Header.Reflectivity = FileStream.ReadVector3();
 
                 FileStream.ReadBytes(4); // padding
 

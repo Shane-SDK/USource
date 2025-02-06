@@ -28,8 +28,8 @@ namespace USource.SourceAsset
             UReader reader = new UReader(stream);
             Header header = reader.ReadSourceObject<Header>(0);
             int textureCount = header.lumps[44].fileLength / 4;
-            int[] indexArray = new int[textureCount];
-            reader.ReadArray(ref indexArray, header.lumps[44].fileOffset);
+            reader.BaseStream.Position = header.lumps[44].fileOffset;
+            int[] indexArray = reader.ReadIntArray(textureCount);
 
             // iterate over each index in the texture-index table
             for (int i = 0; i < textureCount; i++)
