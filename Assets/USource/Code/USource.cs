@@ -35,9 +35,7 @@ namespace USource
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Init()
         {
-#if UNITY_EDITOR
-            settings = UnityEditor.AssetDatabase.LoadAssetAtPath<Settings>(UnityEditor.AssetDatabase.GUIDToAssetPath(UnityEditor.AssetDatabase.FindAssets("t:Settings", new[] { "Assets/USource" })[0]));
-#endif
+            settings = Resources.Load<Settings>("Settings");
             resourceManager = new ResourceManager();
         }
         public static Type GetTypeFromExtension(string sourceExtension)

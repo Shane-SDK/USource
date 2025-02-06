@@ -12,7 +12,13 @@ namespace USource.AssetImporters
     [ScriptedImporter(0, "bsp")]
     public class BspImporter : ScriptedImporter
     {
-        public BspConverter.ImportOptions importOptions = new BspConverter.ImportOptions { cullSkybox = true, setupDependencies = false, splitWorldGeometry = true };
+        public BspConverter.ImportOptions importOptions = new BspConverter.ImportOptions {
+            cullSkybox = true,
+            setupDependencies = false,
+            splitWorldGeometry = true,
+            importWorldColliders = true,
+            probeMode = BspConverter.LightProbeMode.GenerateUnityProbes
+        };
         public override void OnImportAsset(AssetImportContext ctx)
         {
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);

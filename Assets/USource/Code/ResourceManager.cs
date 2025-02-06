@@ -219,10 +219,16 @@ namespace USource
             sourceAsset.GetDependencies(stream, dependencies, true, ImportMode.CreateAndCache);
             List<Location> depList = dependencies.RecursiveChildren.ToList();
             stream.Close();
+            HashSet<Location> imported = new(); 
 
             for (int i = depList.Count - 1; i >= 0; i--)
             {
                 Location dependency = depList[i];
+
+                if (!imported.Contains(dependency))
+                    imported.Add(dependency);
+                else
+                    continue;
 
                 int reverseIndex = (depList.Count - 1 - i);
                 UnityEditor.EditorUtility.DisplayProgressBar($"Importing {location.SourcePath}", $"[2/2] Importing {dependency.SourcePath} ({reverseIndex} / {depList.Count - 1})", (float)(reverseIndex) / (depList.Count - 1));
@@ -244,6 +250,8 @@ namespace USource
             UnityEditor.EditorUtility.ClearProgressBar();
             UnityEditor.AssetDatabase.StopAssetEditing();
             UnityEngine.Profiling.Profiler.EndSample();
+
+            UnityEngine.Debug.Log($"Imported {imported.Count} files, {depList.Count - imported.Count} redundant imports");
         }
 #endif
         void Cache(Location location, UnityEngine.Object obj)

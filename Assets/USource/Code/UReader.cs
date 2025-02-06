@@ -71,23 +71,25 @@ namespace USource
         }
         public Vector3 ReadVector2()
         {
-            Vector2 Vector2D = new Vector2(ReadSingle(), ReadSingle());
-
-            return Vector2D;
+            return new Vector2(EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()));
         }
         public Vector3 ReadVector3()
         {
-            Vector3 Vector3D = new Vector3(ReadSingle(), ReadSingle(), ReadSingle());
-
-            return Vector3D;
+            return new Vector3(EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()));
         }
         public Vector4 ReadVector4()
         {
-            return new Vector4(ReadSingle(), ReadSingle(), ReadSingle(), ReadSingle());
+            return new Vector4(EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()));
         }
         public Quaternion ReadQuaternion()
         {
-            return new Quaternion(ReadSingle(), ReadSingle(), ReadSingle(), ReadSingle());
+            return new Quaternion(EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()), EnsureNormal(ReadSingle()));
+        }
+        public float EnsureNormal(float v)
+        {
+            if (!float.IsNormal(v) || float.IsInfinity(v) || float.IsNaN(v))
+                return 0.0f;
+            else return v;
         }
         public void ReadVector3Array(Vector3[] array)
         {

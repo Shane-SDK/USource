@@ -29,7 +29,7 @@ namespace USource.Converters
             new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
             new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
             new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2, 1),
-            new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float32, 2, 2),
+            //new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float32, 2, 2),
         };
         public readonly static VertexAttributeDescriptor[] skinnedVertexDescriptor = new VertexAttributeDescriptor[]
         {
@@ -233,8 +233,8 @@ namespace USource.Converters
                 SubMeshDescriptor[] subMeshDescriptors = new SubMeshDescriptor[submeshes.Count];
 
                 mesh.SetVertexBufferParams(vertices.Count, hasArmature ? skinnedVertexDescriptor : staticVertexDescriptor);
-                mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0,  (MeshUpdateFlags)(int.MaxValue));
-                mesh.SetVertexBufferData(uvs, 0, 0, uvs.Count, 1, (MeshUpdateFlags)(int.MaxValue));
+                mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0);
+                mesh.SetVertexBufferData(uvs, 0, 0, uvs.Count, 1);
 
                 if (hasArmature)
                     mesh.SetVertexBufferData(skinnedData, 0, 0, skinnedData.Count, 2);
@@ -261,9 +261,9 @@ namespace USource.Converters
 
                 mesh.SetIndexBufferParams(indices.Count, indexFormat);
                 if (indexFormat == IndexFormat.UInt16)
-                    mesh.SetIndexBufferData(indices as List<ushort>, 0, 0, indices.Count, (MeshUpdateFlags)(int.MaxValue));
+                    mesh.SetIndexBufferData(indices as List<ushort>, 0, 0, indices.Count);
                 else
-                    mesh.SetIndexBufferData(indices as List<uint>, 0, 0, indices.Count, (MeshUpdateFlags)(int.MaxValue));
+                    mesh.SetIndexBufferData(indices as List<uint>, 0, 0, indices.Count);
 
                 mesh.SetSubMeshes(subMeshDescriptors);
 
@@ -301,7 +301,7 @@ namespace USource.Converters
                 mesh.RecalculateBounds();
                 mesh.RecalculateNormals();
                 mesh.RecalculateTangents();
-                mesh.Optimize();
+                //mesh.Optimize();
                 mesh.UploadMeshData(true);
                 renderer.sharedMaterials = materials.ToArray();
             }
@@ -476,13 +476,11 @@ namespace USource.Converters
 
                         mesh.name = $"{collisionPart.boneName}-{p}.phy";
 
-                        MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices | MeshUpdateFlags.DontResetBoneBounds | MeshUpdateFlags.DontNotifyMeshUsers;
-
                         mesh.SetVertexBufferParams(vertices.Count, physVertexDescriptor);
-                        mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0, flags);
+                        mesh.SetVertexBufferData(vertices, 0, 0, vertices.Count, 0);
                         mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt16);
-                        mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
-                        mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length }, flags = MeshUpdateFlags.DontRecalculateBounds );
+                        mesh.SetIndexBufferData(indices, 0, 0, indices.Length);
+                        mesh.SetSubMesh(0, new SubMeshDescriptor { indexCount = indices.Length });
 
                         //mesh.Optimize();
                         mesh.RecalculateNormals();
