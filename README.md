@@ -4,10 +4,8 @@
 >- Asset browser does not show preview images for content
 >- Has only been tested on content from 2013 Source Engine games, specifically Garry's Mod, Half Life 2, and Counter Strike: Source files.
 >- Centered around the Universal Rendering Pipeline
->- Inconsistent MDL importing physics models / mesh colliders
 >- Inconsistent MDL importing relating to checksum errors
 >- Some VPKs (Garry's Mod) are not read properly
->- BSP/VMF angles are not converted correctly
 >- Assets imported using the Asset Browser may need to be reimported through the Unity Project window in order for them to import correctly.  
 >
 >Despite the current state I want to publicize this for anyone who may be interested in its development. I plan on using this in my other projects so it is important to me that these problems get solved in the future
@@ -58,7 +56,7 @@ In addition an Asset Browser is provided that allows users to browse and import 
 ## BSP Data Support Status
 |Feature|Status|
 |-|-|
-|World collision|In the future|
+|World collision|Supported|
 |World Geometry|Supported <sup>[1]</sup>|
 |Displacements|Buggy <sup>[2]</sup>|
 |Props|Supported|
