@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using USource.Formats.Source.VPK;
+using USource.Formats.VPK;
 
 namespace USource
 {

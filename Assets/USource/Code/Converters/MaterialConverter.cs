@@ -14,12 +14,12 @@ namespace USource.Converters
             Environment,
         }
         public IReadOnlyDictionary<Map, Location> Maps => maps;
-        Formats.Source.VTF.VMTFile vmt;
+        Formats.VTF.VMTFile vmt;
         Dictionary<Map, Location> maps;
         public MaterialFlags flags;
         public MaterialConverter(System.IO.Stream stream)
         {
-            this.vmt = new Formats.Source.VTF.VMTFile(stream);
+            this.vmt = new Formats.VTF.VMTFile(stream);
 
             maps = new();
 

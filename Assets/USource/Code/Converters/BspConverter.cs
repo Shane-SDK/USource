@@ -7,7 +7,7 @@ using System.Reflection;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using USource.Formats.Source.BSP;
+using USource.Formats.BSP;
 
 namespace USource.Converters
 {

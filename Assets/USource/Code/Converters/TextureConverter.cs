@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using USource.Formats.Source.VTF;
+using USource.Formats.VTF;
 
 namespace USource.Converters
 {

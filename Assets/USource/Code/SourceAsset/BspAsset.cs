@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using USource.Converters;
-using USource.Formats.Source.BSP;
+using USource.Formats.BSP;
 
 namespace USource.SourceAsset
 {

@@ -1,6 +1,6 @@
 ﻿using System.IO;
 using USource.Converters;
-using USource.Formats.Source.MDL;
+using USource.Formats.MDL;
 
 namespace USource.SourceAsset
 {

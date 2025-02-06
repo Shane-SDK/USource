@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
-using USource.Formats.Source.MDL;
 using USource.MathLib;
 using System.IO;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
-using USource.Formats.Source.BSP;
-using USource.Formats.Source.PHYS;
+using USource.Formats.BSP;
+using USource.Formats.PHYS;
+using USource.Formats.MDL;
 
 namespace USource.Converters
 {
@@ -44,7 +44,7 @@ namespace USource.Converters
             new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
             new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
         };
-        public Formats.Source.MDL.MDLFile mdl;
+        public Formats.MDL.MDLFile mdl;
         public List<AnimationClip> clips;
         public readonly ImportOptions importOptions;
         public ModelConverter(Stream stream, Stream vvdStream, Stream vtxStream, Stream physStream, ImportOptions importOptions)
@@ -54,7 +54,7 @@ namespace USource.Converters
 
             if (vvdStream != null && vtxStream != null)
             {
-                new Formats.Source.VTX.VTXFile(vtxStream, mdl, new Formats.Source.VVD.VVDFile(vvdStream, mdl));
+                new Formats.VTX.VTXFile(vtxStream, mdl, new Formats.VVD.VVDFile(vvdStream, mdl));
             }
 
             this.importOptions = importOptions;
@@ -426,7 +426,7 @@ namespace USource.Converters
         {
             for (int s = 0; s < collisionData.Count; s++)
             {
-                Formats.Source.PHYS.Solid collisionPart = collisionData[s];
+                Formats.PHYS.Solid collisionPart = collisionData[s];
 
                 Transform transform = go.transform.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.ToLower() == collisionPart.boneName?.ToLower());
                 if (transform != null)
