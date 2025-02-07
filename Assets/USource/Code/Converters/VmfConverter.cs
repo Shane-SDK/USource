@@ -279,7 +279,6 @@ namespace USource.Converters
             staticGO.transform.parent = vmfGO.transform;
 
             int entityCount = vmf.Body.Count;
-            int entityCounter = 0;
 
 
             // GO through Brush/Point entities

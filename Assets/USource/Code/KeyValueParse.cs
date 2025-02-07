@@ -390,7 +390,7 @@ namespace USource
                     throw new Exception(result.ErrorMessage);
                 }
             }
-            catch(Exception ex)
+            catch (Exception)
             {
                 //UnityEngine.Debug.Log(value);
                 //UnityEngine.Debug.LogError("EOF: " + ex);
