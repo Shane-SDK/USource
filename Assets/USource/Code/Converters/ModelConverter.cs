@@ -417,12 +417,12 @@ namespace USource.Converters
 
             if (importOptions.HasFlag(ImportOptions.Physics) && mdl.HasPhysics)
             {
-                CreateColliders(model, mdl.phys.solids, true);
+                CreateColliders(model, mdl.phys.solids, ctx, true);
             }
 
             return model;
         }
-        public static void CreateColliders(GameObject go, IList<Solid> collisionData, bool excludeConcave = false)
+        public static void CreateColliders(GameObject go, IList<Solid> collisionData, ImportContext ctx, bool excludeConcave = false)
         {
             for (int s = 0; s < collisionData.Count; s++)
             {
@@ -436,11 +436,13 @@ namespace USource.Converters
 
                 for (int p = 0; p < maxParts; p++)
                 {
+                    Collider collider;
                     if (collisionPart.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
                     {
                         BoxCollider col = go.AddComponent<BoxCollider>();
                         col.center = boxCenter;
                         col.size = boxSize;
+                        collider = col;
                     }
                     else  // Create mesh
                     {
@@ -491,7 +493,16 @@ namespace USource.Converters
                         MeshCollider c = go.AddComponent<MeshCollider>();
                         c.sharedMesh = mesh;
                         c.convex = true;
+
+                        collider = c;
                     }
+
+#if UNITY_EDITOR
+                    if (ctx.ImportMode == ImportMode.AssetDatabase)
+                    {
+                        ctx.AssetImportContext.AddObjectToAsset($"collider.{p}", collider);
+                    }
+#endif
                 }
             }
         }

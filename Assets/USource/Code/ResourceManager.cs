@@ -251,7 +251,7 @@ namespace USource
             UnityEditor.AssetDatabase.StopAssetEditing();
             UnityEngine.Profiling.Profiler.EndSample();
 
-            UnityEngine.Debug.Log($"Imported {imported.Count} files, {depList.Count - imported.Count} redundant imports");
+            //UnityEngine.Debug.Log($"Imported {imported.Count} files, {depList.Count - imported.Count} redundant imports");
         }
 #endif
         void Cache(Location location, UnityEngine.Object obj)

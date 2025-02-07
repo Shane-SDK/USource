@@ -171,7 +171,7 @@ namespace USource.Converters
                 {
                     if (!bModelMap.TryGetValue(pair.Key, out GameObject go)) continue;
 
-                    ModelConverter.CreateColliders(go, pair.Value.solids, pair.Key != 0);
+                    ModelConverter.CreateColliders(go, pair.Value.solids, ctx, pair.Key != 0);
 #if UNITY_EDITOR
                     foreach (MeshCollider mesh in go.GetComponentsInChildren<MeshCollider>())
                     {

@@ -66,18 +66,6 @@ namespace USource.AssetImporters
                 //avatar.name = $"{obj.name} Avatar";
                 //ctx.AddObjectToAsset("avatar", avatar);
             }
-            MeshCollider[] meshColliders = obj.GetComponentsInChildren<MeshCollider>();
-            for (int i = 0; i < meshColliders.Length; i++)
-            {
-                MeshCollider collider = meshColliders[i];
-                ctx.AddObjectToAsset($"col.mesh.{i}", collider.sharedMesh);
-            }
-            Collider[] colliders = obj.GetComponentsInChildren<Collider>();
-            for (int i = 0; i < colliders.Length; i++)
-            {
-                Collider collider = colliders[i];
-                ctx.AddObjectToAsset($"col.{i}", collider);
-            }
 
             if (model.clips != null)
             {
