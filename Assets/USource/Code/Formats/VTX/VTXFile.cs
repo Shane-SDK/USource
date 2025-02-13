@@ -19,7 +19,9 @@ namespace USource.Formats.VTX
                 VTX_Header = reader.ReadSourceObject<FileHeader>();
 
                 if (VTX_Header.checkSum != MDL_Header.checksum)
-                    throw new FileLoadException(string.Format("{0}: Does not match the checksum in the .mdl", MDL_Header.name));
+                {
+                    Debug.LogWarning($"{MDL_Header.name} checksum error {VTX_Header.checkSum} (VTX) != {MDL_Header.checksum} (MDL)");
+                }
 
                 int[] vertexoffset = new int[8];
                 for (int bodypartID = 0; bodypartID < MDL_Header.bodypart_count; bodypartID++)

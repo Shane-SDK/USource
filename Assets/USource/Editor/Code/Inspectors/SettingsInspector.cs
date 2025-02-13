@@ -5,7 +5,7 @@ using UnityEditor;
 namespace USource
 {
     [CustomEditor(typeof(Settings))]
-    public class SettingsInspector : Editor
+    public class SettingsInspector : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {

@@ -73,43 +73,40 @@ namespace USource.Converters
             {
                 for (Int32 boneID = 0; boneID < mdl.MDL_Header.bone_count; boneID++)
                 {
-                    GameObject BoneObject = new GameObject(mdl.MDL_BoneNames[boneID]);
-
-                    Bones[boneID] = BoneObject.transform;//MDL_Bones.Add(BoneObject.transform);
+                    StudioBone bone = mdl.MDL_StudioBones[boneID];
+                    Transform boneTransform = new GameObject(mdl.MDL_BoneNames[boneID]).transform;
+                    Bones[boneID] = boneTransform;
 
                     Vector3 pos = mdl.MDL_StudioBones[boneID].pos * USource.settings.sourceToUnityScale;
                     Vector3 rot = mdl.MDL_StudioBones[boneID].rot * Mathf.Rad2Deg;
 
-                    //Invert x for convert right-handed to left-handed
-                    pos.x = -pos.x;
+                    //Debug.Log($"{boneTransform.name} : {rot}");
+
+                    pos.z *= -1;
 
                     if (mdl.MDL_StudioBones[boneID].parent >= 0)
                     {
-                        Bones[boneID].parent = Bones[mdl.MDL_StudioBones[boneID].parent];
+                        boneTransform.parent = Bones[mdl.MDL_StudioBones[boneID].parent];
                     }
                     else
                     {
-                        //Swap Z & Y and invert Y (ex: X Z -Y)
-                        //only for parents, cuz parents used different order vectors
-                        float temp = pos.y;
-                        pos.y = pos.z;
-                        pos.z = -temp;
-
-                        Bones[boneID].parent = model.transform;
+                        boneTransform.parent = model.transform;
+                        pos = new Vector3(pos.x, -pos.z, pos.y);
                     }
 
-                    bonePathDict.Add(boneID, Bones[boneID].GetTransformPath(model.transform));
+                    boneTransform.localPosition = pos;
 
-                    Bones[boneID].localPosition = pos;
-                    //Bones[boneID].localRotation = MDL_StudioBones[i].quat;
-
-                    if (mdl.MDL_StudioBones[boneID].parent == -1)
+                    if (bone.parent == -1)
                     {
-                        //Fix up parents
-                        Bones[boneID].localRotation = Quaternion.Euler(-90, 90, -90) * MathLibrary.AngleQuaternion(rot);
+                        boneTransform.localRotation = Quaternion.Euler(-90, 90, -90) * MathLibrary.AngleQuaternion(rot);
                     }
                     else
-                        Bones[boneID].localRotation = MathLibrary.AngleQuaternion(rot);
+                    {
+                        rot = IConverter.SourceTransformAngles(rot);
+                        boneTransform.localRotation = MathLibrary.AngleQuaternion(rot);
+                    }
+
+                    bonePathDict.Add(boneID, boneTransform.GetTransformPath(model.transform));
                 }
             }
 
@@ -299,7 +296,7 @@ namespace USource.Converters
                 UnityEditor.Unwrapping.GenerateSecondaryUVSet(mesh);
 #endif
                 mesh.RecalculateBounds();
-                mesh.RecalculateNormals();
+                //mesh.RecalculateNormals();
                 mesh.RecalculateTangents();
                 //mesh.Optimize();
                 mesh.UploadMeshData(true);
@@ -489,6 +486,11 @@ namespace USource.Converters
                         mesh.RecalculateTangents();
                         mesh.RecalculateBounds();
                         mesh.UploadMeshData(true);
+
+                        if (ctx.ImportMode == ImportMode.AssetDatabase)
+                        {
+                            ctx.AssetImportContext.AddObjectToAsset($"meshcollider.{p}", mesh);
+                        }
 
                         MeshCollider c = go.AddComponent<MeshCollider>();
                         c.sharedMesh = mesh;

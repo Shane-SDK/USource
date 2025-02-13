@@ -43,40 +43,6 @@ namespace USource.AssetImporters
             ctx.AddObjectToAsset("material", obj);
             ctx.SetMainObject(obj);
 
-            if (location.SourcePath.Contains("/skybox/") && location.SourcePath.Contains("ft.vmt"))
-            {
-                // create skybox material
-                UnityEngine.Material skyboxMaterial = new UnityEngine.Material(Shader.Find("Skybox/6 Sided"));
-                skyboxMaterial.name = "skybox";
-
-                void DoSkyStuff(string sourceSide, string unitySide)
-                {
-                    if (sourceSide == "ft.vmt")
-                    {
-                        obj.mainTexture.wrapMode = TextureWrapMode.Clamp;
-                        skyboxMaterial.SetTexture(unitySide, obj.mainTexture);
-                    }
-                    else if (USource.ResourceManager.GetUnityObject(new Location(location.SourcePath.Replace("ft.vmt", sourceSide), Location.Type.Source), out UnityEngine.Material skySideMaterial, ImportMode.AssetDatabase, true))
-                    {
-                        // Update texture importer to clamp texture
-                        //skySideMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
-                        //VtfImporter textureImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texResource.mainTexture)) as VtfImporter;
-                        //textureImporter.wrapMode = TextureWrapMode.Clamp;
-                        skyboxMaterial.SetTexture(unitySide, skySideMaterial.mainTexture);
-                    }
-                    
-                }
-
-                DoSkyStuff("lf.vmt", "_BackTex");
-                DoSkyStuff("rt.vmt", "_FrontTex");
-                DoSkyStuff("dn.vmt", "_DownTex");
-                DoSkyStuff("up.vmt", "_UpTex");
-                DoSkyStuff("ft.vmt", "_LeftTex");
-                DoSkyStuff("bk.vmt", "_RightTex");
-
-                ctx.AddObjectToAsset("sky", skyboxMaterial);
-            }
-
             stream?.Close();
         }
     }

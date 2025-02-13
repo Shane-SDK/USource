@@ -98,6 +98,16 @@ namespace USource.SourceAsset
 
                     if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(key)) break;
 
+                    if (key == "skyname")
+                    {
+                        ISourceAsset.AddDependency(new Location($"materials/skybox/{value}lf.vmt", Location.Type.Source), tree, recursive, mode);
+                        ISourceAsset.AddDependency(new Location($"materials/skybox/{value}rt.vmt", Location.Type.Source), tree, recursive, mode);
+                        ISourceAsset.AddDependency(new Location($"materials/skybox/{value}dn.vmt", Location.Type.Source), tree, recursive, mode);
+                        ISourceAsset.AddDependency(new Location($"materials/skybox/{value}up.vmt", Location.Type.Source), tree, recursive, mode);
+                        ISourceAsset.AddDependency(new Location($"materials/skybox/{value}ft.vmt", Location.Type.Source), tree, recursive, mode);
+                        ISourceAsset.AddDependency(new Location($"materials/skybox/{value}bk.vmt", Location.Type.Source), tree, recursive, mode);
+                    }
+
                     Location location = new Location(value, Location.Type.Source);
 
                     if (!importedLocations.Contains(location) && key == "model" && value.Length > 0 && value[0] != '*')

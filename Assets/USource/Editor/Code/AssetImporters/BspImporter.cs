@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UnityEditor.AssetImporters;
 using USource.Converters;
 using USource.SourceAsset;
+using static USource.Converters.BspConverter;
 
 namespace USource.AssetImporters
 {
@@ -13,11 +14,12 @@ namespace USource.AssetImporters
     public class BspImporter : ScriptedImporter
     {
         public BspConverter.ImportOptions importOptions = new BspConverter.ImportOptions {
-            cullSkybox = true,
             setupDependencies = false,
             splitWorldGeometry = true,
             importWorldColliders = true,
-            probeMode = BspConverter.LightProbeMode.GenerateUnityProbes
+            probeMode = BspConverter.LightProbeMode.GenerateUnityProbes,
+            objects = ObjectFlags.LightProbes | ObjectFlags.Props | ObjectFlags.StaticWorld | ObjectFlags.Lights | ObjectFlags.BrushModels | ObjectFlags.Displacements,
+            skyboxMode = SkyboxMode.Scale
         };
         public override void OnImportAsset(AssetImportContext ctx)
         {

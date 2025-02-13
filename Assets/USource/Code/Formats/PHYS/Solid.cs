@@ -65,11 +65,15 @@ namespace USource.Formats.PHYS
 
             TriangleData[] triangles = solids[partIndex].triangles;
 
+            if (vertices.Length < 8) return false;
+            if (triangles.Length < 12) return false;
+
             for (int t = 0; t < triangles.Length; t++)
             {
-                Vector3 p1 = vertices[triangles[t].v1];
-                Vector3 p2 = vertices[triangles[t].v2];
-                Vector3 p3 = vertices[triangles[t].v3];
+                TriangleData data = triangles[t];
+                Vector3 p1 = vertices[data.v1];
+                Vector3 p2 = vertices[data.v2];
+                Vector3 p3 = vertices[data.v3];
 
                 Plane plane = new Plane(p3, p2, p1);
 

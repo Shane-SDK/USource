@@ -28,7 +28,7 @@ namespace USource.Formats.BSP
             lightMapStart = reader.ReadInt32();
 
             // skip 130 bytes, apparently unnecessary
-            reader.BaseStream.Seek(130, System.IO.SeekOrigin.Begin);
+            reader.Skip(130);
         }
     }
 }

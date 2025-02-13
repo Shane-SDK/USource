@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using USource.Converters;
 using USource.Formats.PHYS;
 using USource.SourceAsset;
 
@@ -214,7 +215,7 @@ namespace USource.Formats.BSP
             int iteration = 0;
             while (true)
             {
-                if (iteration > 100) break;
+                if (iteration > 1000) break;
                 iteration++;
 
                 PhysModelHeader modelHeader = new();
@@ -264,6 +265,17 @@ namespace USource.Formats.BSP
                 return true;
 
             unityPosition = default;
+            return false;
+        }
+        public bool TryGetTransformedVector3(string key, out Vector3 pos)
+        {
+            if (values.TryGetValue(key, out string posString) && Conversions.TryParseVector3(posString, out pos))
+            {
+                pos = IConverter.SourceTransformPoint(pos);
+                return true;
+            }
+
+            pos = default;
             return false;
         }
         public bool TryGetVector4(string key, out Vector4 vector)

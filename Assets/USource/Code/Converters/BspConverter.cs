@@ -8,6 +8,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using USource.Formats.BSP;
+using USource.Formats.MDL;
 
 namespace USource.Converters
 {
@@ -29,30 +30,42 @@ namespace USource.Converters
         Location location;
         BSP bspFile;
         ImportOptions importOptions;
+        BspEntity skyCamera;
+        HashSet<int> skyFaces;
+        HashSet<ushort> usedFaces;
+        short skyLeafCluster;
+        Vector3 skyCameraPosition;
+        float skyCameraScale = 1;
         public BspConverter(Stream stream, ImportOptions importOptions)
         {
             bspFile = new BSP(stream);
             this.importOptions = importOptions;
         }
+        Vector3 TransformSkyboxToWorld(Vector3 skyPos)
+        {
+            Vector3 local = skyPos - skyCameraPosition;
+
+            return local * skyCameraScale;
+        }
         public UnityEngine.Object CreateAsset(ImportContext ctx)
         {
-            BspEntity skyCamera = bspFile.entities.FirstOrDefault(e => e.values.TryGetValue("classname", out string className) && className == "sky_camera");
-            HashSet<int> skyFaces = new();
-            HashSet<ushort> skyLeafs = new();
-            short skyLeafCluster = -1;
+            skyCamera = bspFile.entities.FirstOrDefault(e => e.values.TryGetValue("classname", out string className) && className == "sky_camera");
+            skyFaces = new();
+            usedFaces = new();
+            skyLeafCluster = short.MinValue;
+            skyCameraPosition = Vector3.zero;
 
             Dictionary<int, GameObject> bModelMap = new();
 
-            if (importOptions.cullSkybox && skyCamera != null && skyCamera.TryGetVector3("origin", out Vector3 cameraPosition))
+            if (skyCamera != null && skyCamera.TryGetTransformedVector3("origin", out skyCameraPosition))
             {
-                Leaf skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(cameraPosition));
+                Leaf skyBoxLeaf = bspFile.leafs.FirstOrDefault(e => e.Contains(skyCameraPosition));
                 skyLeafCluster = skyBoxLeaf.cluster;
                 for (int i = 0; i < bspFile.leafs.Length; i++)
                 {
                     Leaf leaf = bspFile.leafs[i];
                     if (leaf.cluster != skyBoxLeaf.cluster) continue;
 
-                    skyLeafs.Add((ushort)i);
                     for (ushort leafIndex = leaf.firstLeafFace; leafIndex < leaf.firstLeafFace + leaf.leafFaceCount; leafIndex++)
                     {
                         int faceIndex = bspFile.leafFaces[leafIndex];
@@ -61,6 +74,7 @@ namespace USource.Converters
                     }
                 }
             }
+            skyCamera?.TryGetFloat("scale", out skyCameraScale);
 
             GameObject worldGo = new GameObject(location.SourcePath);
             worldGo.isStatic = true;
@@ -72,56 +86,28 @@ namespace USource.Converters
             // Brushes/World geometry
             for (int modelIndex = 0; modelIndex < bspFile.models.Length; modelIndex++)
             {
+                if (!importOptions.objects.HasFlag(ObjectFlags.StaticWorld) && modelIndex == 0) continue;
+                if (!importOptions.objects.HasFlag(ObjectFlags.BrushModels) && modelIndex != 0) break;
+
                 BrushModel model = bspFile.models[modelIndex];
 
-                if (importOptions.splitWorldGeometry && modelIndex == 0)
+                bool splitGeometry = importOptions.splitWorldGeometry && modelIndex == 0;
+                if (splitGeometry)
                 {
                     GameObject modelGO = null;
 
                     int modelFaceStart = model.firstFace;
                     int modelFacesEnd = model.firstFace + model.faceCount;
 
-                    for (int leafIndex = 0; leafIndex < bspFile.leafs.Length; leafIndex++)
-                    {
-                        // Get all faces that belong to this leaf
-                        Leaf leaf = bspFile.leafs[leafIndex];
-
-                        if (leaf.cluster == skyLeafCluster && importOptions.cullSkybox) continue;
-
-                        MeshData meshData = new MeshData(bspFile, leafIndex);
-                        for (int leafFaceIndex = leaf.firstLeafFace; leafFaceIndex < leaf.firstLeafFace + leaf.leafFaceCount; leafFaceIndex++)
-                        {
-                            ushort faceIndex = bspFile.leafFaces[leafFaceIndex];
-
-                            if (faceIndex < modelFaceStart || faceIndex >= modelFacesEnd) continue;
-
-                            meshData.AddFace(ref bspFile.faces[faceIndex]);
-                        }
-
-                        if (!meshData.HasGeometry) continue;
-
-                        if (modelGO == null)
-                        {
-                            modelGO = new GameObject($"[{modelIndex}] Model");
-                            modelGO.isStatic = true;
-                            modelGO.transform.parent = worldGeometryGO.transform;
-                            modelGO.transform.position = model.origin;
-                            bModelMap[modelIndex] = modelGO;
-                        }
-
-                        GameObject leafGO = new GameObject($"{leafIndex}");
-                        leafGO.isStatic = true;
-                        leafGO.transform.parent = modelGO.transform;
-
-                        meshData.CreateMesh(leafGO, ctx);
-                    }
-
                     for (int i = 0; i < bspFile.dispInfo.Length; i++)
                     {
-                        if (skyFaces.Contains((int)bspFile.dispInfo[i].face)) continue;
+                        DisplacementInfo dispInfo = bspFile.dispInfo[i];
+                        ushort faceIndex = dispInfo.face;
+                        if ((skyFaces.Contains(faceIndex) && importOptions.skyboxMode == SkyboxMode.Cull) || usedFaces.Contains(faceIndex)) continue;
 
-                        MeshData meshData = new MeshData(bspFile, i);
-                        meshData.AddFace(ref bspFile.faces[bspFile.dispInfo[i].face]);
+                        MeshData meshData = new MeshData(bspFile, i, this);
+                        meshData.AddFace(ref bspFile.faces[faceIndex], faceIndex);
+                        usedFaces.Add(faceIndex);
 
                         if (!meshData.HasGeometry) continue;
 
@@ -141,15 +127,52 @@ namespace USource.Converters
 
                         meshData.CreateMesh(dispGO, ctx);
                     }
+
+                    for (int leafIndex = 0; leafIndex < bspFile.leafs.Length; leafIndex++)
+                    {
+                        // Get all faces that belong to this leaf
+                        Leaf leaf = bspFile.leafs[leafIndex];
+
+                        if (leaf.cluster == skyLeafCluster && importOptions.skyboxMode == SkyboxMode.Cull) continue;
+
+                        MeshData meshData = new MeshData(bspFile, leafIndex, this);
+                        for (int leafFaceIndex = leaf.firstLeafFace; leafFaceIndex < leaf.firstLeafFace + leaf.leafFaceCount; leafFaceIndex++)
+                        {
+                            ushort faceIndex = bspFile.leafFaces[leafFaceIndex];
+
+                            if (usedFaces.Contains(faceIndex)) continue;
+
+                            meshData.AddFace(ref bspFile.faces[faceIndex], faceIndex);
+                            usedFaces.Add(faceIndex);
+                        }
+
+                        if (!meshData.HasGeometry) continue;
+
+                        if (modelGO == null)
+                        {
+                            modelGO = new GameObject($"[{modelIndex}] Model");
+                            modelGO.isStatic = true;
+                            modelGO.transform.parent = worldGeometryGO.transform;
+                            modelGO.transform.position = model.origin;
+                            bModelMap[modelIndex] = modelGO;
+                        }
+
+                        GameObject leafGO = new GameObject($"{leafIndex}");
+                        leafGO.isStatic = true;
+                        leafGO.transform.parent = modelGO.transform;
+
+                        meshData.CreateMesh(leafGO, ctx);
+                    }
                 }
                 else
                 {
-                    MeshData meshData = new MeshData(bspFile, modelIndex);
+                    MeshData meshData = new MeshData(bspFile, modelIndex, this);
                     for (int faceIndex = model.firstFace; faceIndex < model.firstFace + model.faceCount; faceIndex++)
                     {
-                        if (skyFaces.Contains(faceIndex)) continue;
+                        if ((skyFaces.Contains(faceIndex) && importOptions.skyboxMode == SkyboxMode.Cull) || usedFaces.Contains((ushort)faceIndex)) continue;
 
-                        meshData.AddFace(ref bspFile.faces[faceIndex]);
+                        meshData.AddFace(ref bspFile.faces[faceIndex], faceIndex);
+                        usedFaces.Add((ushort)faceIndex);
                     }
 
                     if (!meshData.HasGeometry) continue;
@@ -172,39 +195,44 @@ namespace USource.Converters
                     if (!bModelMap.TryGetValue(pair.Key, out GameObject go)) continue;
 
                     ModelConverter.CreateColliders(go, pair.Value.solids, ctx, pair.Key != 0);
-#if UNITY_EDITOR
-                    foreach (MeshCollider mesh in go.GetComponentsInChildren<MeshCollider>())
-                    {
-                        ctx.AssetImportContext.AddObjectToAsset("world collider", mesh.sharedMesh);
-                    }
-#endif
                 }
             }
 
             // Static props
-            GameObject staticPropsGO = new GameObject("Static Props");
-            staticPropsGO.isStatic = true;
-            staticPropsGO.transform.parent = worldGo.transform;
-            for (int i = 0; i < bspFile.staticPropLumps.Length; i++)
+            if (importOptions.objects.HasFlag( ObjectFlags.Props ))
             {
-                if (skyLeafs.Contains(bspFile.staticPropLeafEntries[i])) continue;  // skip props in the skybox
-                StaticProp lump = bspFile.staticPropLumps[i];
-
-                if (USource.ResourceManager.GetUnityObject(new Location(bspFile.staticPropDict[lump.propType], Location.Type.Source), out GameObject prefab, ctx.ImportMode, true))
+                GameObject staticPropsGO = new GameObject("Static Props");
+                staticPropsGO.isStatic = true;
+                staticPropsGO.transform.parent = worldGo.transform;
+                for (int i = 0; i < bspFile.staticPropLumps.Length; i++)
                 {
-                    GameObject instance;
-#if UNITY_EDITOR
-                    instance = UnityEditor.PrefabUtility.InstantiatePrefab(prefab) as UnityEngine.GameObject;
-#else
-                    instance = GameObject.Instantiate(prefab);
-#endif
-                    if (instance == null) continue;
+                    //bool isSkybox = bspFile.leafs[bspFile.staticPropLeafEntries[i]].cluster == skyLeafCluster;
+                    //if (isSkybox && importOptions.skyboxMode == SkyboxMode.Cull) continue;
 
-                    instance.name = $"[{i}] {instance.name}";
-                    instance.isStatic = true;
-                    instance.transform.position = lump.origin;
-                    instance.transform.rotation = Quaternion.Euler(lump.angles);
-                    instance.transform.parent = staticPropsGO.transform;
+                    StaticProp lump = bspFile.staticPropLumps[i];
+
+                    if (USource.ResourceManager.GetUnityObject(new Location(bspFile.staticPropDict[lump.propType], Location.Type.Source), out GameObject prefab, ctx.ImportMode, true))
+                    {
+                        GameObject instance;
+    #if UNITY_EDITOR
+                        instance = UnityEditor.PrefabUtility.InstantiatePrefab(prefab) as UnityEngine.GameObject;
+    #else
+                        instance = GameObject.Instantiate(prefab);
+    #endif
+                        if (instance == null) continue;
+
+                        instance.name = $"[{i}] {instance.name}";
+                        instance.isStatic = true;
+                        instance.transform.position = lump.origin;
+                        instance.transform.rotation = Quaternion.Euler(lump.angles);
+                        instance.transform.parent = staticPropsGO.transform;
+
+                        //if (isSkybox && importOptions.skyboxMode == SkyboxMode.Scale)
+                        //{
+                        //    instance.transform.position = TransformSkyboxToWorld(lump.origin);
+                        //    instance.transform.localScale = Vector3.one * 16.0f;
+                        //}
+                    }
                 }
             }
 
@@ -218,8 +246,16 @@ namespace USource.Converters
                 entity.TryGetVector3("origin", out Vector3 position);
                 entity.TryGetVector3("angles", out Vector3 angles);
 
+
                 position = IConverter.SourceTransformPoint(position);
                 angles = IConverter.SourceTransformAngles(angles);
+
+                bool skybox = false;
+                if (importOptions.skyboxMode == SkyboxMode.Scale && bspFile.leafs.Any(e => (e.cluster == skyLeafCluster) && (e.Contains(position))))
+                {
+                    skybox = true;
+                    position = TransformSkyboxToWorld(position);
+                }
 
                 if (entity.TryGetFloat("pitch", out float pitch))
                 {
@@ -236,13 +272,16 @@ namespace USource.Converters
                     return go;
                 }
 
-                if (entity.TryGetValue("model", out string modelValue))
+                if (importOptions.objects.HasFlag( ObjectFlags.Props) && entity.TryGetValue("model", out string modelValue))
                 {
                     if (modelValue.StartsWith('*'))  // Brush model
                     {
                         if (int.TryParse(modelValue.Substring(1, (modelValue.Length - 1)), out int brushModelIndex) && bModelMap.TryGetValue(brushModelIndex, out GameObject modelGO))
                         {
                             modelGO.transform.position = position;
+
+                            if (skybox && importOptions.skyboxMode == SkyboxMode.Scale)
+                                modelGO.transform.localScale = Vector3.one * skyCameraScale;
                         }
                     }
                     else if (USource.ResourceManager.GetUnityObject(new Location(modelValue, Location.Type.Source), out GameObject prefab, ctx.ImportMode, true))  // studioprop model
@@ -259,10 +298,13 @@ namespace USource.Converters
                         instance.transform.position = position;
                         instance.transform.rotation = Quaternion.Euler(angles);
                         instance.transform.parent = worldGo.transform;
+
+                        if (skybox && importOptions.skyboxMode == SkyboxMode.Scale)
+                            instance.transform.localScale = Vector3.one * skyCameraScale;
                     }
                 }
 
-                if (className.Contains("light"))
+                if (importOptions.objects.HasFlag(ObjectFlags.Lights) && className.Contains("light"))
                 {
                     LightType type = LightType.Point;
 
@@ -304,73 +346,76 @@ namespace USource.Converters
                 }
             }
 
-            // Ambient lighting / Light probes
 #if UNITY_EDITOR
-            if (importOptions.probeMode != LightProbeMode.None)
+            if (importOptions.objects.HasFlag( ObjectFlags.LightProbes))
             {
-                LightProbeGroup probes = new GameObject("Light Probes").AddComponent<LightProbeGroup>();
-                probes.gameObject.isStatic = true;
-                probes.transform.parent = worldGo.transform;
-                ICollection<Vector3> probePositions = null;
-                if (importOptions.probeMode == LightProbeMode.UseMapProbes)
-                    probePositions = new Vector3[bspFile.ldrAmbientLighting.Length];
-                else
-                    probePositions = new List<Vector3>();
-                    
-                for (int i = 0; i < bspFile.ldrAmbientIndices.Length; i++)
+                // Ambient lighting / Light probes
+                if (importOptions.objects.HasFlag( ObjectFlags.Lights ))
                 {
-                    Leaf leaf = bspFile.leafs[i];
-                    if (importOptions.cullSkybox && leaf.cluster == skyLeafCluster) continue;
-
-                    LeafAmbientIndex indices = bspFile.ldrAmbientIndices[i];
-                    if (indices.ambientSampleCount == 0) continue;  // Prevents generating probes in solid leaves
-
-                    Bounds leafBounds = new Bounds { min = leaf.TransformMin(), max = leaf.TransformMax() };
-                    Vector3 boundsSize = leafBounds.size;
-
+                    LightProbeGroup probes = new GameObject("Light Probes").AddComponent<LightProbeGroup>();
+                    probes.gameObject.isStatic = true;
+                    probes.transform.parent = worldGo.transform;
+                    ICollection<Vector3> probePositions = null;
                     if (importOptions.probeMode == LightProbeMode.UseMapProbes)
+                        probePositions = new Vector3[bspFile.ldrAmbientLighting.Length];
+                    else
+                        probePositions = new List<Vector3>();
+                    
+                    for (int i = 0; i < bspFile.ldrAmbientIndices.Length; i++)
                     {
-                        // Use BSP's randomly placed light probe positions
-                        Vector3[] probeArray = probePositions as Vector3[];
-                        for (int lightIndex = indices.firstAmbientSample; lightIndex < indices.firstAmbientSample + indices.ambientSampleCount; lightIndex++)
+                        Leaf leaf = bspFile.leafs[i];
+                        if (leaf.cluster == skyLeafCluster) continue;
+
+                        LeafAmbientIndex indices = bspFile.ldrAmbientIndices[i];
+                        if (indices.ambientSampleCount == 0) continue;  // Prevents generating probes in solid leaves
+
+                        Bounds leafBounds = new Bounds { min = leaf.TransformMin(), max = leaf.TransformMax() };
+                        Vector3 boundsSize = leafBounds.size;
+
+                        if (importOptions.probeMode == LightProbeMode.UseMapProbes)
                         {
-                            LeafAmbientLighting lightInfo = bspFile.ldrAmbientLighting[lightIndex];
-                            Vector3 normalizedLocation = new Vector3(lightInfo.x, lightInfo.z, lightInfo.y) / 255.0f;
-                            Vector3 worldLocation = leafBounds.min + new Vector3(boundsSize.x * normalizedLocation.x, boundsSize.y * normalizedLocation.y, boundsSize.z * normalizedLocation.z);
-                            probeArray[lightIndex] = worldLocation;
+                            // Use BSP's randomly placed light probe positions
+                            Vector3[] probeArray = probePositions as Vector3[];
+                            for (int lightIndex = indices.firstAmbientSample; lightIndex < indices.firstAmbientSample + indices.ambientSampleCount; lightIndex++)
+                            {
+                                LeafAmbientLighting lightInfo = bspFile.ldrAmbientLighting[lightIndex];
+                                Vector3 normalizedLocation = new Vector3(lightInfo.x, lightInfo.z, lightInfo.y) / 255.0f;
+                                Vector3 worldLocation = leafBounds.min + new Vector3(boundsSize.x * normalizedLocation.x, boundsSize.y * normalizedLocation.y, boundsSize.z * normalizedLocation.z);
+                                probeArray[lightIndex] = worldLocation;
+                            }
                         }
+                        else  // Generate uniform light probe positions
+                        {
+                            List<Vector3> probeList = probePositions as List<Vector3>;
+                            Vector3 probeDistance = Vector3.one * 1.5f;
+                            int maxDimensionCount = 8;
+                            Vector3Int probeCounts = Vector3Int.zero;
+                            probeCounts.x = Mathf.Clamp(Mathf.FloorToInt(boundsSize.x / probeDistance.x), 1, maxDimensionCount);
+                            probeCounts.y = Mathf.Clamp(Mathf.FloorToInt(boundsSize.y / probeDistance.y), 1, maxDimensionCount);
+                            probeCounts.z = Mathf.Clamp(Mathf.FloorToInt(boundsSize.z / probeDistance.z), 1, maxDimensionCount);
+
+                            for (int c = 0; c < 3; c++)  // If max count exceeded, reset probe distance
+                            {
+                                if (probeCounts[c] == maxDimensionCount)
+                                    probeDistance[c] = boundsSize[c] / probeCounts[c];
+                            }
+
+                            Vector3 padding = (boundsSize - new Vector3((probeCounts.x - 1) * probeDistance.x, (probeCounts.y - 1) * probeDistance.y, (probeCounts.z - 1) * probeDistance.z)) / 2;
+
+                            for (int packedPos = 0; packedPos < probeCounts.x * probeCounts.y * probeCounts.z; packedPos++)
+                            {
+                                int x = packedPos % probeCounts.x;
+                                int y = (packedPos / probeCounts.x) % probeCounts.y;
+                                int z = (packedPos / probeCounts.x) / probeCounts.y;
+
+                                Vector3 position = leafBounds.min + new Vector3(x * probeDistance.x, y * probeDistance.y, z * probeDistance.z) + padding;
+                                probeList.Add(position);
+                            }
+                        }
+
+                        // Set probes
+                        probes.probePositions = importOptions.probeMode == LightProbeMode.UseMapProbes ? probePositions as Vector3[] : (probePositions as List<Vector3>).ToArray();
                     }
-                    else  // Generate uniform light probe positions
-                    {
-                        List<Vector3> probeList = probePositions as List<Vector3>;
-                        Vector3 probeDistance = Vector3.one * 1.5f;
-                        int maxDimensionCount = 8;
-                        Vector3Int probeCounts = Vector3Int.zero;
-                        probeCounts.x = Mathf.Clamp(Mathf.FloorToInt(boundsSize.x / probeDistance.x), 1, maxDimensionCount);
-                        probeCounts.y = Mathf.Clamp(Mathf.FloorToInt(boundsSize.y / probeDistance.y), 1, maxDimensionCount);
-                        probeCounts.z = Mathf.Clamp(Mathf.FloorToInt(boundsSize.z / probeDistance.z), 1, maxDimensionCount);
-
-                        for (int c = 0; c < 3; c++)  // If max count exceeded, reset probe distance
-                        {
-                            if (probeCounts[c] == maxDimensionCount)
-                                probeDistance[c] = boundsSize[c] / probeCounts[c];
-                        }
-
-                        Vector3 padding = (boundsSize - new Vector3((probeCounts.x - 1) * probeDistance.x, (probeCounts.y - 1) * probeDistance.y, (probeCounts.z - 1) * probeDistance.z)) / 2;
-
-                        for (int packedPos = 0; packedPos < probeCounts.x * probeCounts.y * probeCounts.z; packedPos++)
-                        {
-                            int x = packedPos % probeCounts.x;
-                            int y = (packedPos / probeCounts.x) % probeCounts.y;
-                            int z = (packedPos / probeCounts.x) / probeCounts.y;
-
-                            Vector3 position = leafBounds.min + new Vector3(x * probeDistance.x, y * probeDistance.y, z * probeDistance.z) + padding;
-                            probeList.Add(position);
-                        }
-                    }
-
-                    // Set probes
-                    probes.probePositions = importOptions.probeMode == LightProbeMode.UseMapProbes ? probePositions as Vector3[] : (probePositions as List<Vector3>).ToArray();
                 }
             }
 #endif
@@ -388,17 +433,33 @@ namespace USource.Converters
         [System.Serializable]
         public struct ImportOptions
         {
-            public bool cullSkybox;
             public bool splitWorldGeometry;
             public bool setupDependencies;
             public bool importWorldColliders;
             public LightProbeMode probeMode;
+            public ObjectFlags objects;
+            public SkyboxMode skyboxMode;
+        }
+        [System.Flags]
+        public enum ObjectFlags
+        {
+            StaticWorld = 1 << 0,
+            Props = 1 << 1,
+            Lights = 1 << 2,
+            LightProbes = 1 << 3,
+            BrushModels = 1 << 4,
+            Displacements = 1 << 5,
         }
         public enum LightProbeMode
         {
-            None,
             UseMapProbes,
             GenerateUnityProbes
+        }
+        public enum SkyboxMode
+        {
+            Original,
+            Cull,
+            Scale,
         }
         public struct WorldVertex
         {
@@ -409,13 +470,14 @@ namespace USource.Converters
         }
         public class MeshData
         {
-            public MeshData(BSP bsp, long key)
+            public MeshData(BSP bsp, long key, BspConverter converter)
             {
                 this.bsp = bsp;
                 vertices = new();
                 subMeshes = new();
                 subMeshMap = new();
                 this.key = key;
+                this.converter = converter;
             }
             public bool HasGeometry => vertices.Count > 0 && subMeshes.Count > 0;
             readonly BSP bsp;
@@ -423,7 +485,8 @@ namespace USource.Converters
             List<WorldVertex> vertices;
             Dictionary<int, List<uint>> subMeshes;
             List<int> subMeshMap = new();
-            public void AddFace(ref Face face)
+            BspConverter converter;
+            public void AddFace(ref Face face, int faceIndex)
             {
                 TextureInfo textureInfo = bsp.texInfo[face.textureInfo];
                 TextureData textureData = bsp.texData[textureInfo.textureDataIndex];
@@ -432,6 +495,8 @@ namespace USource.Converters
                 if (USource.noRenderMaterials.Contains(materialPath) || USource.noCreateMaterials.Contains(materialPath))  // Don't include sky and other tool textures
                     return;
 
+                bool isSky = converter.skyFaces.Contains(faceIndex);
+
                 if (!subMeshes.TryGetValue(textureData.nameStringTableIndex, out List<uint> subIndices))  // Ensure submesh/indices exist
                 {
                     subMeshMap.Add(textureData.nameStringTableIndex);
@@ -439,10 +504,9 @@ namespace USource.Converters
                     subMeshes[textureData.nameStringTableIndex] = subIndices;
                 }
 
-                if (face.displacementInfo != -1)  // face is a displacement
+                if (converter.importOptions.objects.HasFlag( ObjectFlags.Displacements ) && face.displacementInfo != -1)  // face is a displacement
                 {
                     DisplacementInfo dispInfo = bsp.dispInfo[face.displacementInfo];
-
                     // Triangles
                     int vertexEdgeCount = (1 << dispInfo.power) + 1;
                     int edgeCount = 1 << dispInfo.power;
@@ -487,6 +551,8 @@ namespace USource.Converters
                             bsp.edges[Mathf.Abs(surfEdge)].index1;
 
                         Vector3 vertex = EnsureFinite(bsp.vertices[edgeIndex]);
+                        if (isSky && converter.importOptions.skyboxMode == SkyboxMode.Scale)
+                            vertex = converter.TransformSkyboxToWorld(vertex);
                         faceVertices[i] = vertex;
                         float distance = Vector3.Distance(basePosition, vertex);
                         if (distance < minimumVertexDistance)
@@ -529,6 +595,12 @@ namespace USource.Converters
                             Vector3 DispVertex = IConverter.SourceTransformDirection(DispVertInfo.displacement) * (DispVertInfo.distance * USource.settings.sourceToUnityScale);
                             DispVertex += FlatVertex;
 
+                            if (isSky == false)
+                                isSky = converter.bspFile.leafs.Any(e => e.cluster == converter.skyLeafCluster && e.Contains(DispVertex));
+
+                            if (isSky && converter.importOptions.skyboxMode == SkyboxMode.Scale)
+                                DispVertex = converter.TransformSkyboxToWorld(DispVertex);
+
                             float s = (Vector3.Dot(FlatVertex, tS) + textureInfo.textureVecs0.w * USource.settings.sourceToUnityScale) / (textureData.viewWidth * USource.settings.sourceToUnityScale);
                             float t = -(Vector3.Dot(FlatVertex, tT) + textureInfo.textureVecs1.w * USource.settings.sourceToUnityScale) / (textureData.viewHeight * USource.settings.sourceToUnityScale);
 
@@ -557,6 +629,11 @@ namespace USource.Converters
 
                         WorldVertex vertex = new();
                         vertex.position = EnsureFinite(bsp.vertices[edgeIndex]);
+                        if (isSky && converter.importOptions.skyboxMode == SkyboxMode.Scale)
+                        {
+                            vertex.position = converter.TransformSkyboxToWorld(vertex.position);
+                        }
+
                         Vector3 crossVertexPostiion = new Vector3(-vertex.position.z, vertex.position.y, vertex.position.x);
                         float TextureUVS = (Vector3.Dot(crossVertexPostiion, tS) + textureInfo.textureVecs0.w * USource.settings.sourceToUnityScale) / (textureData.viewWidth * USource.settings.sourceToUnityScale);
                         float TextureUVT = -(Vector3.Dot(crossVertexPostiion, tT) + textureInfo.textureVecs1.w * USource.settings.sourceToUnityScale) / (textureData.viewHeight * USource.settings.sourceToUnityScale);

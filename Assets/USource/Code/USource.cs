@@ -13,6 +13,7 @@ namespace USource
         public static ResourceManager ResourceManager => resourceManager;
         static ResourceManager resourceManager;
         public static Settings settings;
+        public static readonly string baseAssetsPath = "Assets/USource/Assets/";
         public readonly static HashSet<string> noRenderMaterials = new HashSet<string>
         {
             "tools/toolsnodraw",
@@ -62,12 +63,11 @@ namespace USource
         }
         public static string AssetPathToSourcePath(string assetPath)
         {
-            string preceedingPath = $"Assets/USource/Assets/";
-            return assetPath.Substring(preceedingPath.Length, assetPath.Length - preceedingPath.Length);
+            return assetPath.Substring(baseAssetsPath.Length, assetPath.Length - baseAssetsPath.Length);
         }
         public static string SourcePathToAssetPath(string sourcePath)
         {
-            return $"Assets/USource/Assets/{sourcePath}";  // Path of the asset relative to project
+            return $"{baseAssetsPath}{sourcePath}";  // Path of the asset relative to project
         }
     }
 }

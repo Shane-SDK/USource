@@ -9,6 +9,7 @@ namespace USource
 {
     public class UReader : BinaryReader
     {
+        public string HexPosition => InputStream.Position.ToString("X");
         public Stream InputStream;
         public UReader(Stream InputStream) 
             : base(InputStream)

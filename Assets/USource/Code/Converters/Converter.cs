@@ -76,7 +76,7 @@ namespace USource.Converters
         }
         public static Vector3 SourceTransformDirection(Vector3 c)
         {
-            return new Vector3(-c.x, c.z, -c.y);
+            return new Vector3(c.x, c.z, c.y);
         }
         public static Vector3 SourceTransformAngles(Vector3 sourceAngles)
         {

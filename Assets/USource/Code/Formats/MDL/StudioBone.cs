@@ -26,8 +26,6 @@ namespace USource.Formats.MDL
         public int surfacepropidx;
         public int contents;
 
-        public int[] unused;  // 8
-
         public void ReadToObject(UReader reader, int version = 0)
         {
             sznameindex = reader.ReadInt32();

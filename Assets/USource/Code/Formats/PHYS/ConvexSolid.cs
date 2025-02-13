@@ -1,4 +1,6 @@
-﻿namespace USource.Formats.PHYS
+﻿using System.Diagnostics;
+
+namespace USource.Formats.PHYS
 {
     public class ConvexSolid : ISourceObject
     {
