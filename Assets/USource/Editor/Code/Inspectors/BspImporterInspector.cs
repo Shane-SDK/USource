@@ -44,7 +44,7 @@ namespace USource
                 BSP bsp = new BSP(stream);
                 if (bsp.entities.Count > 0 && bsp.entities[0].values.TryGetValue("skyname", out string skyName))
                 {
-                    Material material = AssetDatabase.LoadAssetAtPath<Material>($"{USource.baseAssetsPath}UnitySkyboxes/{skyName}.asset");
+                    Material material = AssetDatabase.LoadAssetAtPath<Material>($"{USource.AssetsPath}UnitySkyboxes/{skyName}.asset");
                     if (material == null && SkyboxUtility.CreateUnitySkyMaterial(skyName, ImportMode.AssetDatabase, out Material unitySkyMaterial))
                     {
                         SkyboxUtility.SaveUnitySkyMaterial(skyName, unitySkyMaterial);

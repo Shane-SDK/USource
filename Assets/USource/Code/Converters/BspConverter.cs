@@ -91,14 +91,19 @@ namespace USource.Converters
 
                 BrushModel model = bspFile.models[modelIndex];
 
+                int modelFaceStart = model.firstFace;
+                int modelFacesEnd = model.firstFace + model.faceCount;
+
+                GameObject modelGO = new GameObject($"[{modelIndex}] Model");
+                modelGO.isStatic = true;
+                modelGO.transform.parent = worldGeometryGO.transform;
+                modelGO.transform.position = model.origin;
+                bModelMap[modelIndex] = modelGO;
+
+
                 bool splitGeometry = importOptions.splitWorldGeometry && modelIndex == 0;
-                if (splitGeometry)
+                if (splitGeometry)  // Use leaf faces
                 {
-                    GameObject modelGO = null;
-
-                    int modelFaceStart = model.firstFace;
-                    int modelFacesEnd = model.firstFace + model.faceCount;
-
                     for (int i = 0; i < bspFile.dispInfo.Length; i++)
                     {
                         DisplacementInfo dispInfo = bspFile.dispInfo[i];
@@ -110,16 +115,6 @@ namespace USource.Converters
                         usedFaces.Add(faceIndex);
 
                         if (!meshData.HasGeometry) continue;
-
-                        if (modelGO == null)
-                        {
-                            modelGO = new GameObject($"[{modelIndex}] Model");
-                            modelGO.isStatic = true;
-                            modelGO.transform.parent = worldGeometryGO.transform;
-                            modelGO.transform.position = model.origin;
-                            bModelMap[modelIndex] = modelGO;
-                        }
-
 
                         GameObject dispGO = new GameObject($"disp {i}");
                         dispGO.isStatic = true;
@@ -148,15 +143,6 @@ namespace USource.Converters
 
                         if (!meshData.HasGeometry) continue;
 
-                        if (modelGO == null)
-                        {
-                            modelGO = new GameObject($"[{modelIndex}] Model");
-                            modelGO.isStatic = true;
-                            modelGO.transform.parent = worldGeometryGO.transform;
-                            modelGO.transform.position = model.origin;
-                            bModelMap[modelIndex] = modelGO;
-                        }
-
                         GameObject leafGO = new GameObject($"{leafIndex}");
                         leafGO.isStatic = true;
                         leafGO.transform.parent = modelGO.transform;
@@ -167,7 +153,7 @@ namespace USource.Converters
                 else
                 {
                     MeshData meshData = new MeshData(bspFile, modelIndex, this);
-                    for (int faceIndex = model.firstFace; faceIndex < model.firstFace + model.faceCount; faceIndex++)
+                    for (int faceIndex = modelFaceStart; faceIndex < modelFacesEnd; faceIndex++)
                     {
                         if ((skyFaces.Contains(faceIndex) && importOptions.skyboxMode == SkyboxMode.Cull) || usedFaces.Contains((ushort)faceIndex)) continue;
 
@@ -176,12 +162,6 @@ namespace USource.Converters
                     }
 
                     if (!meshData.HasGeometry) continue;
-
-                    GameObject modelGO = new GameObject($"[{modelIndex}] Model");
-                    modelGO.isStatic = true;
-                    modelGO.transform.parent = worldGeometryGO.transform;
-                    modelGO.transform.position = model.origin;
-                    bModelMap[modelIndex] = modelGO;
 
                     meshData.CreateMesh(modelGO, ctx);
                 }
@@ -323,8 +303,8 @@ namespace USource.Converters
                     if (entity.TryGetVector4("_light", out Vector4 lightValues))
                     {
                         color = new Color(lightValues.x / 255, lightValues.y / 255, lightValues.z / 255);
-                        range = lightValues.w / 20;
-                        intensity = lightValues.w / (type == LightType.Directional ? 200 : 25);
+                        range = lightValues.w / 5;
+                        intensity = lightValues.w / (type == LightType.Directional ? 200 : 10);
                     }
 
                     Light light = CreateEntityGO(true).AddComponent<Light>();

@@ -45,7 +45,7 @@ namespace USource
 #if UNITY_EDITOR
         public static void SaveUnitySkyMaterial(string skyName, Material unityMaterial)
         {
-            string path = $"{USource.baseAssetsPath}UnitySkyboxes/{skyName}.asset";
+            string path = $"{USource.AssetsPath}UnitySkyboxes/{skyName}.asset";
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
             UnityEditor.AssetDatabase.CreateAsset(unityMaterial, path);
         }

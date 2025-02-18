@@ -8,6 +8,7 @@ namespace USource
     public class Settings : ScriptableObject
     {
         public List<string> GamePaths => gamePaths;
+        public string assetsPath = "Assets/USource/Assets/";
         public float sourceToUnityScale = 0.025f;
         [UnityEngine.SerializeField]
         List<string> gamePaths;
