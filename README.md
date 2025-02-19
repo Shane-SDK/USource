@@ -6,7 +6,8 @@
 >- Centered around the Universal Rendering Pipeline
 >- Inconsistent MDL importing relating to checksum errors
 >- Some VPKs (Garry's Mod) are not read properly
->- Assets imported using the Asset Browser may need to be reimported through the Unity Project window in order for them to import correctly.  
+>- Assets imported using the Asset Browser may need to be reimported through the Unity Project window in order for them to import correctly.
+>- MDL bones do not import correctly
 >
 >Despite the current state I want to publicize this for anyone who may be interested in its development. I plan on using this in my other projects so it is important to me that these problems get solved in the future
 
