@@ -18,20 +18,21 @@ namespace USource.AssetImporters
         public override void OnImportAsset(AssetImportContext ctx)
         {
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
-            System.IO.Stream stream = System.IO.File.OpenRead(ctx.assetPath);
-            DependencyTree dependencies = new(location);
-            ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
-            sourceAsset.GetDependencies(stream, dependencies, false);
-            foreach (Location dependency in dependencies.GetImmediateChildren(false))
-                ctx.DependsOnArtifact(dependency.AssetPath);
+            using (System.IO.Stream stream = System.IO.File.OpenRead(ctx.assetPath))
+            {   
+                DependencyTree dependencies = new(location);
+                ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
+                sourceAsset.GetDependencies(stream, dependencies, false);
+                foreach (Location dependency in dependencies.GetImmediateChildren(false))
+                    ctx.DependsOnArtifact(dependency.AssetPath);
 
-            stream.Close();
-            stream = System.IO.File.OpenRead(ctx.assetPath);
+                stream.Position = 0;
 
-            VmfConverter converter = new VmfConverter(stream);
-            UnityEngine.Object obj = converter.CreateAsset(new ImportContext(ImportMode.AssetDatabase, ctx));
-            ctx.AddObjectToAsset("level", obj);
-            ctx.SetMainObject(obj);
+                VmfConverter converter = new VmfConverter(stream);
+                UnityEngine.Object obj = converter.CreateAsset(new ImportContext(ImportMode.AssetDatabase, ctx));
+                ctx.AddObjectToAsset("level", obj);
+                ctx.SetMainObject(obj);
+            }
         }
     }
 }

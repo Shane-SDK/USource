@@ -19,7 +19,7 @@ namespace USource.AssetImporters
         public Dictionary<Converters.MaterialConverter.Map, Location> maps;
         public override void OnImportAsset(AssetImportContext ctx)
         {
-            Stream stream = File.OpenRead(ctx.assetPath);
+            using Stream stream = File.OpenRead(ctx.assetPath);
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase, null);
             ISourceAsset sourceAsset = ISourceAsset.FromLocation(location);
             DependencyTree dependencies = new(location);
@@ -28,8 +28,7 @@ namespace USource.AssetImporters
             foreach (Location dependency in dependencies.GetImmediateChildren(false))
                 ctx.DependsOnArtifact(dependency.AssetPath);
 
-            stream.Close();
-            stream = File.OpenRead(ctx.assetPath);
+            stream.Position = 0;
 
             Converters.MaterialConverter materialConverter = new Converters.MaterialConverter(stream);
             flags = materialConverter.flags;
@@ -39,11 +38,9 @@ namespace USource.AssetImporters
                 maps.Add(pair.Key, pair.Value);
             }
 
-            UnityEngine.Material obj = materialConverter.CreateAsset( new ImportContext(ImportMode.AssetDatabase, ctx) ) as UnityEngine.Material;
+            UnityEngine.Material obj = materialConverter.CreateAsset(new ImportContext(ImportMode.AssetDatabase, ctx)) as UnityEngine.Material;
             ctx.AddObjectToAsset("material", obj);
             ctx.SetMainObject(obj);
-
-            stream?.Close();
         }
     }
 }

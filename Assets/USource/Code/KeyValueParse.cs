@@ -420,10 +420,9 @@ namespace USource
 
         public static KeyValues FromStream(Stream stream, KeyValuesFlags flags = KeyValuesFlags.Default)
         {
-            using (var reader = new StreamReader(stream))
-            {
-                return Parse(reader.ReadToEnd(), flags);
-            }
+            byte[] bytes = new byte[stream.Length];
+            stream.Read(bytes, 0, (int)stream.Length);
+            return Parse(System.Text.Encoding.ASCII.GetString(bytes));
         }
 
         public static IEnumerable<KeyValues> ListFromStream(Stream stream, KeyValuesFlags flags = KeyValuesFlags.Default)

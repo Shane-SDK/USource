@@ -24,22 +24,26 @@ namespace USource.AssetImporters
         public override void OnImportAsset(AssetImportContext ctx)
         {
             Location location = new Location(ctx.assetPath, Location.Type.AssetDatabase);
-            BspConverter converter = new BspConverter(System.IO.File.OpenRead(ctx.assetPath), importOptions);
-
-            if (importOptions.setupDependencies)
+            using (System.IO.FileStream file = System.IO.File.OpenRead(ctx.assetPath))
             {
-                ISourceAsset bspAsset = ISourceAsset.FromLocation(location);
-                DependencyTree tree = new(location);
-                bspAsset.GetDependencies(System.IO.File.OpenRead(ctx.assetPath), tree, false, ImportMode.CreateAndCache);
-                foreach (Location child in tree.GetImmediateChildren(false))
+                if (importOptions.setupDependencies)
                 {
-                    ctx.DependsOnArtifact(child.AssetPath);
-                }
-            }
+                    ISourceAsset bspAsset = ISourceAsset.FromLocation(location);
+                    DependencyTree tree = new(location);
+                    bspAsset.GetDependencies(file, tree, false, ImportMode.CreateAndCache);
+                    foreach (Location child in tree.GetImmediateChildren(false))
+                    {
+                        ctx.DependsOnArtifact(child.AssetPath);
+                    }
 
-            UnityEngine.Object obj = converter.CreateAsset(new ImportContext( ImportMode.AssetDatabase, ctx));
-            ctx.AddObjectToAsset("go", obj);
-            ctx.SetMainObject(obj);
+                    file.Position = 0;
+                }
+
+                BspConverter converter = new BspConverter(file, importOptions);
+                UnityEngine.Object obj = converter.CreateAsset(new ImportContext(ImportMode.AssetDatabase, ctx));
+                ctx.AddObjectToAsset("go", obj);
+                ctx.SetMainObject(obj);
+            }
         }
     }
 }

@@ -29,6 +29,7 @@ namespace USource.SourceAsset
             {
                 ISourceAsset depAsset = ISourceAsset.FromLocation(dependency);
                 depAsset.GetDependencies(depStream, tree, true, mode);
+                depStream?.Close();
             }
             else
             {
@@ -45,9 +46,11 @@ namespace USource.SourceAsset
                 {
                     // use include key material instead of this
                     patchedMaterial = new Location(keys.First().Value["include"], Location.Type.Source, materialLocation.ResourceProvider);
+                    matStream?.Close();
                     return true;
                 }
             }
+            matStream?.Close();
             return false;
         }
     }

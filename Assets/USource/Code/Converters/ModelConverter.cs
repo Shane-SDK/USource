@@ -434,6 +434,10 @@ namespace USource.Converters
                 for (int p = 0; p < maxParts; p++)
                 {
                     Collider collider;
+                    ConvexSolid part = collisionPart.solids[p];
+                    if (part.header.unknownFlag == 5)
+                        continue;
+
                     if (collisionPart.IsBoxShape(p, out Vector3 boxCenter, out Vector3 boxSize))
                     {
                         BoxCollider col = go.AddComponent<BoxCollider>();
@@ -443,7 +447,6 @@ namespace USource.Converters
                     }
                     else  // Create mesh
                     {
-                        ConvexSolid part = collisionPart.solids[p];
                         Mesh mesh = new Mesh();
                         Dictionary<Vector3, ushort> vertexMap = new();
 
@@ -486,19 +489,18 @@ namespace USource.Converters
                         mesh.RecalculateTangents();
                         mesh.RecalculateBounds();
                         mesh.UploadMeshData(true);
-
+#if UNITY_EDITOR
                         if (ctx.ImportMode == ImportMode.AssetDatabase)
                         {
                             ctx.AssetImportContext.AddObjectToAsset($"meshcollider.{p}", mesh);
                         }
-
+#endif
                         MeshCollider c = go.AddComponent<MeshCollider>();
                         c.sharedMesh = mesh;
                         c.convex = true;
 
                         collider = c;
                     }
-
 #if UNITY_EDITOR
                     if (ctx.ImportMode == ImportMode.AssetDatabase)
                     {

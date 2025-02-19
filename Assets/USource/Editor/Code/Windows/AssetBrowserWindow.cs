@@ -45,7 +45,7 @@ namespace USource.Windows
         {
             USource.Init();
 
-            if (TryLoadAsset("t:VisualTreeAsset AssetBrowser", new[] { "Assets/USource" }, out VisualTreeAsset rootAsset) == false)
+            if (TryLoadAsset("t:VisualTreeAsset AssetBrowser", null, out VisualTreeAsset rootAsset) == false)
             {
                 Debug.LogError($"Failed to find Asset Browser VisualTreeAsset asset in USource directory", this);
                 return;
@@ -59,7 +59,7 @@ namespace USource.Windows
             });
 
             // get entry asset
-            if (TryLoadAsset("t:VisualTreeAsset Entry", new[] { "Assets/USource" }, out VisualTreeAsset entryAsset) == false)
+            if (TryLoadAsset("t:VisualTreeAsset Entry", null, out VisualTreeAsset entryAsset) == false)
                 return;
 
             ListView rootView = rootVisualElement.Q<ListView>();

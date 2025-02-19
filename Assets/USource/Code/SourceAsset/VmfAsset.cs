@@ -33,6 +33,7 @@ namespace USource.SourceAsset
                         if (USource.ResourceManager.GetStream(location, out Stream depStream, mode))
                         {
                             new MdlAsset(location).GetDependencies(depStream, dependencies, recursive);
+                            depStream.Close();
                         }
                     }
                 }
@@ -56,6 +57,7 @@ namespace USource.SourceAsset
                         if (USource.ResourceManager.GetStream(location, out Stream depStream, mode))
                         {
                             new VmtAsset(location).GetDependencies(depStream, dependencies, recursive);
+                            depStream.Close();
                         }
                     }
                 }
@@ -68,6 +70,7 @@ namespace USource.SourceAsset
                     if (recursive && USource.ResourceManager.GetStream(skyLocation, out Stream skyStream))
                     {
                         new VmtAsset(skyLocation).GetDependencies(skyStream, dependencies, true);
+                        skyStream.Close();
                     }
                     else
                     {

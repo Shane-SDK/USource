@@ -27,6 +27,7 @@ namespace USource.SourceAsset
                 if (recursive && USource.ResourceManager.GetStream(skyLocation, out Stream skyStream))
                 {
                     new VmtAsset(skyLocation).GetDependencies(skyStream, tree, true);
+                    skyStream.Dispose();
                 }
                 else
                 {

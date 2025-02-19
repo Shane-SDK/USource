@@ -13,17 +13,21 @@ namespace USource
     [CustomEditor(typeof(BspImporter))]
     public class BspImporterInspector : ScriptedImporterEditor
     {
-        FileStream stream;
+        MemoryStream stream;
         UReader reader;
         Formats.BSP.Header header;
         public override void OnEnable()
         {
             base.OnEnable();
-            stream = File.OpenRead((target as BspImporter).assetPath);
-            reader = new UReader(stream);
-            header.ReadToObject(reader, 0);
 
-            reader.BaseStream.Position = 0;
+            using (FileStream file = File.OpenRead((target as BspImporter).assetPath))
+            {
+                stream = new MemoryStream();
+                file.CopyTo(stream);
+                reader = new UReader(stream);
+                reader.BaseStream.Position = 0;
+                header.ReadToObject(reader, 0);
+            }
         }
         public override void OnDisable()
         {
